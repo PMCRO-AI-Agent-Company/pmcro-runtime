@@ -38,7 +38,7 @@ public sealed partial class PmcroLoop
     }
 
     private static string Truncate(string? s, int max) =>
-        string.IsNullOrEmpty(s) ? string.Empty : (s.Length <= max ? s : s[..max] + "…");
+        string.IsNullOrEmpty(s) ? string.Empty : (s.Length <= max ? s : s[..max] + "\u2026");
 
     private static string ExtractJson(string raw)
     {
@@ -57,13 +57,15 @@ public sealed partial class PmcroLoop
         return raw.Trim();
     }
 
-    private static string BuildAuditInput(PlannerFrame plan, MakerFrame maker, string seedIntent) =>
-        $"""
-        SEED_INTENT: {seedIntent}
-        PLAN: {plan.RawPlan}
-        SUCCESS_CRITERIA: {plan.SuccessCriteria}
-        MAKER_ARTIFACT: {string.Join("\n", maker.StepResults.Select(s => $"[{s.Action}] ok={s.Ok} {s.Output}"))}
-        """;
+    private static string BuildAuditInput(PlannerFrame plan, MakerFrame maker, string seedIntent)
+    {
+        var artifact = string.Join("\n", maker.StepResults.Select(s =>
+            "[" + s.Action + "] ok=" + s.Ok + " " + s.Output));
+        return "SEED_INTENT: " + seedIntent + "\n"
+             + "PLAN: " + plan.RawPlan + "\n"
+             + "SUCCESS_CRITERIA: " + plan.SuccessCriteria + "\n"
+             + "MAKER_ARTIFACT: " + artifact;
+    }
 
     private PlannerFrame BuildPlannerFrame(string trailId, string seedIntent, string project, int cycle, string raw)
     {
@@ -179,37 +181,47 @@ public sealed partial class PmcroLoop
     private string BuildPlannerInstructions(int cycle, string retryContext, string subjectAgentName, List<string> executedActions)
     {
         var executed = executedActions.Count == 0 ? "(none)" : string.Join(", ", executedActions);
-        return $"""
-            You are PlannerAgent for PMCR-O cycle {cycle}.
-            Subject agent: {subjectAgentName}.
-            Already executed: {executed}.
-            {(string.IsNullOrWhiteSpace(retryContext) ? "" : "RETRY_CONTEXT:\n" + retryContext)}
-            Reply with JSON only:
-            {{"steps":[{{"action":"...","subject_agent":"{subjectAgentName}","action_type":"TYPE2"}}],"success_criteria":"..."}}
-            """;
+        var retryBlock = string.IsNullOrWhiteSpace(retryContext)
+            ? string.Empty
+            : "RETRY_CONTEXT:\n" + retryContext + "\n";
+
+        // JSON schema shown with ordinary string concat — avoids $""" brace-count CS9006.
+        var jsonSchema =
+            "{\"steps\":[{\"action\":\"...\",\"subject_agent\":\"" + subjectAgentName +
+            "\",\"action_type\":\"TYPE2\"}],\"success_criteria\":\"...\"}";
+
+        return "You are PlannerAgent for PMCR-O cycle " + cycle + ".\n"
+             + "Subject agent: " + subjectAgentName + ".\n"
+             + "Already executed: " + executed + ".\n"
+             + retryBlock
+             + "Reply with JSON only:\n"
+             + jsonSchema;
     }
 
     private string BuildCheckerInstructions(string subjectAgentName)
     {
-        var law = _skillManifestReader.ReadColonyLaws(subjectAgentName) ?? "";
-        return $"""
-            You are CheckerAgent. Score the maker artifact against success_criteria.
-            Colony laws for {subjectAgentName}:
-            {law}
-            Reply with JSON only:
-            {{"all_passed":true,"criteria_results":[{{"criterion":"...","passed":true,"evidence":"..."}}]}}
-            """;
+        var law = _skillManifestReader.ReadColonyLaws(subjectAgentName) ?? string.Empty;
+        var jsonSchema =
+            "{\"all_passed\":true,\"criteria_results\":[{\"criterion\":\"...\",\"passed\":true,\"evidence\":\"...\"}]}";
+
+        return "You are CheckerAgent. Score the maker artifact against success_criteria.\n"
+             + "Colony laws for " + subjectAgentName + ":\n"
+             + law + "\n"
+             + "Reply with JSON only:\n"
+             + jsonSchema;
     }
 
     private static string BuildReflectorInstructions(string seedIntent, List<CumulativeEvidenceEntry> evidence)
     {
-        var ev = string.Join("\n", evidence.Select(e => $"cycle {e.Cycle}: {e.Action} passed={e.Passed}"));
-        return $"""
-            You are ReflectorAgent. Seed intent: {seedIntent}
-            Cumulative evidence:
-            {ev}
-            Reply with JSON only:
-            {{"signal":"GOAL_COMPLETED|RETRY|HALT","final_output":"...","improvements":null,"next_seed_intent":null}}
-            """;
+        var ev = string.Join("\n", evidence.Select(e =>
+            "cycle " + e.Cycle + ": " + e.Action + " passed=" + e.Passed));
+        var jsonSchema =
+            "{\"signal\":\"GOAL_COMPLETED|RETRY|HALT\",\"final_output\":\"...\",\"improvements\":null,\"next_seed_intent\":null}";
+
+        return "You are ReflectorAgent. Seed intent: " + seedIntent + "\n"
+             + "Cumulative evidence:\n"
+             + ev + "\n"
+             + "Reply with JSON only:\n"
+             + jsonSchema;
     }
 }
