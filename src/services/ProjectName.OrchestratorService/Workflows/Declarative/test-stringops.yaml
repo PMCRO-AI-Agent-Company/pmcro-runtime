@@ -1,0 +1,41 @@
+kind: Workflow
+trigger:
+  kind: OnConversationStart
+  id: test_stringops
+  actions:
+    - kind: SetVariable
+      id: t_fake
+      variable: Local.fakeText
+      value: "Simple text with a straight quote here: X"
+
+    - kind: SendActivity
+      id: emit_fake_planner
+      activity:
+        text:
+          - =Local.fakeText
+      output:
+        messages: Local.EmittedMessages
+
+    - kind: SetVariable
+      id: t_capture
+      variable: Local.text
+      value: =Last(Local.EmittedMessages).Text
+
+    - kind: SetVariable
+      id: t_xpos
+      variable: Local.xPos
+      value: =Find("X", Local.text)
+
+    - kind: SetVariable
+      id: t_probe_x
+      variable: Local.probeX
+      value: =Mid(Local.text, 1, Local.xPos - 1)
+
+    - kind: SendActivity
+      id: report
+      activity:
+        text:
+          - "PLAIN_LETTER_FOUND_OK_VIA_TABLE"
+
+    - kind: EndWorkflow
+      id: done

@@ -1,0 +1,103 @@
+// Skills/PmcroCycleSkill.cs
+// Exposes PmcroLoop.RunAsync() as a single AgentClassSkill tool: run_pmcro_cycle.
+// The Orchestrator LLM calls this tool exactly once per user intent.
+// All P→M→C→R phase work is delegated to phase services via gRPC inside PmcroLoop.
+//
+// Anthropic Pattern : Orchestrator-Workers (the Orchestrator LLM is the orchestrator;
+//                     PmcroLoop dispatches to phase service workers via gRPC)
+// MAF Skill Type    : class-based (AgentClassSkill<T>)
+// Law               : MAAI-001 — Sole TYPE1 dispatcher; all state-mutating work
+//                     flows through this single tool call entry point.
+
+using System.ComponentModel;
+using System.Text.Json;
+using Microsoft.Agents.AI;
+using Microsoft.Extensions.Logging;
+using ProjectName.OrchestratorService.Loop;
+
+namespace ProjectName.OrchestratorService.Skills;
+
+public sealed class PmcroCycleSkill : AgentClassSkill<PmcroCycleSkill>
+{
+    private readonly PmcroLoop _loop;
+    private readonly ILogger<PmcroCycleSkill> _logger;
+
+    public PmcroCycleSkill(PmcroLoop loop, ILogger<PmcroCycleSkill> logger)
+    {
+        _loop   = loop;
+        _logger = logger;
+    }
+
+    public override AgentSkillFrontmatter Frontmatter { get; } = new(
+        name:        "run_pmcro_cycle",
+        description: "Execute a full PMCR-O cognitive loop cycle: Plan → Make → Check → Reflect. " +
+                     "This is the ONLY tool you call for any file, documentation, or code task. " +
+                     "Provide the user's intent as seed_intent. All domain work is handled internally.");
+
+    protected override string Instructions => """
+        You are the PMCR-O Orchestrator.
+
+        LAW: Call run_pmcro_cycle for EVERY user request that involves file, documentation,
+        code, or any domain action. Never attempt domain work yourself.
+
+        USAGE: Pass the user's intent verbatim as seed_intent. Set subject_agent based on
+        what the intent requires (filesystem-agent for file/doc work, default if unsure).
+
+        After the cycle completes, report the disposition (ACCEPT/RETRY/HALT) and the
+        final_output or halt_reason to the user.
+        """;
+
+    [AgentSkillScript("run_pmcro_cycle")]
+    [Description(
+        "Run a full PMCR-O cognitive loop (Plan → Make → Check → Reflect) for the given intent. " +
+        "Returns a JSON object with disposition (ACCEPT|RETRY|HALT), final_output, and trail_id.")]
+    public async Task<string> RunPmcroCycleAsync(
+        [Description("The user's intent or task description. Pass verbatim — do not summarize or paraphrase.")] string seedIntent,
+        [Description("Optional subject agent override. Default: 'filesystem-agent'. Use when the intent clearly targets a specific agent.")] string subjectAgent = "filesystem-agent",
+        [Description("Optional project name for trail namespacing. Default: 'default'.")] string project = "default",
+        [Description("Optional trail ID. Leave empty to auto-generate a new GUID trail.")] string trailId = "")
+    {
+        var id = string.IsNullOrWhiteSpace(trailId) ? Guid.NewGuid().ToString() : trailId;
+
+        _logger.LogInformation(
+            "[PmcroCycleSkill] run_pmcro_cycle trail={Trail} intent=\"{Intent}\" agent={Agent}",
+            id, seedIntent, subjectAgent);
+
+        try
+        {
+            var frame = await _loop.RunAsync(
+                seedIntent:   seedIntent,
+                trailId:      id,
+                project:      project,
+                subjectAgent: subjectAgent);
+
+            return JsonSerializer.Serialize(new
+            {
+                trail_id     = frame.TrailId,
+                disposition  = frame.Disposition.ToString().ToUpperInvariant(),
+                final_output = frame.FinalOutput,
+                halt_reason  = frame.HaltReason,
+                cycle        = frame.CycleNumber,
+                earned_constraints = frame.EarnedConstraints.Select(c => new
+                {
+                    id   = c.Id,
+                    rule = c.Rule,
+                    triggered_by = c.TriggeredBy
+                })
+            }, new JsonSerializerOptions { WriteIndented = false });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[PmcroCycleSkill] run_pmcro_cycle failed trail={Trail}", id);
+            return JsonSerializer.Serialize(new
+            {
+                trail_id     = id,
+                disposition  = "HALT",
+                final_output = (string?)null,
+                halt_reason  = $"PmcroCycleSkill exception: {ex.Message}",
+                cycle        = 0,
+                earned_constraints = Array.Empty<object>()
+            });
+        }
+    }
+}

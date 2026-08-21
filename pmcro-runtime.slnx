@@ -5,7 +5,8 @@
     <Project Path="mcp/ProjectName.Mcp.Terminal/ProjectName.Mcp.Terminal.csproj" />
   </Folder>
   <Folder Name="/src/">
-    <Project Path="src/ProjectName.OrchestratorService/ProjectName.OrchestratorService.csproj" />
     <Project Path="src/ProjectName.ServiceDefaults/ProjectName.ServiceDefaults.csproj" />
   </Folder>
+  <Project Path="src/ProjectName.AppHost/ProjectName.AppHost.csproj" />
+  <Project Path="src/services/ProjectName.OrchestratorService/ProjectName.OrchestratorService.csproj" />
 </Solution>

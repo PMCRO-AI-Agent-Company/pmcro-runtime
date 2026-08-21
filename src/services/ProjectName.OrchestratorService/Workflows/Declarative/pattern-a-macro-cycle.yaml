@@ -1,0 +1,247 @@
+#
+# Pattern A — Macro-scoped PMCR-O cycle, real Foundry Workflow Object-Model
+# schema (Microsoft.Agents.AI.Workflows.Declarative / DeclarativeWorkflowBuilder).
+# Supersedes the hand-invented executors/edges/entry_point shape in
+# workflow.zip:pattern-a-macro-cycle.yaml — that file predates verification
+# against the real parser (see Directory.Packages.props ARCH-DECLARATIVE-001).
+#
+# Agent names below (PlannerAgent, CheckerAgent, ReflectorAgent, plus whatever
+# subject agent the cycle is bound to) resolve through
+# SubjectAgentRegistryProvider -> ISubjectAgentRegistry, i.e. the same local
+# qwen3:8b-backed AIAgents every other MAF-native path in this service uses.
+# No Foundry cloud project required.
+#
+# NOT YET LOAD-BEARING. This is the first real example to validate against
+# DeclarativeWorkflowBuilder.Build<T>() -- see PmcroCycleWorkflow.cs for the
+# hand-rolled equivalent this is meant to eventually replace.
+#
+kind: Workflow
+trigger:
+  kind: OnConversationStart
+  id: pmcro_macro_cycle
+  actions:
+
+    - kind: SetVariable
+      id: init_cycle
+      displayName: Initialize cycle counter
+      variable: Local.cycle
+      value: 1
+
+    - kind: SetVariable
+      id: init_max_cycles
+      displayName: Set loop guard (EC-009, max 3)
+      variable: Local.maxCycles
+      value: 3
+
+    - kind: SetVariable
+      id: init_retry_context
+      displayName: Clear retry context
+      variable: Local.retryContext
+      value: ""
+
+    # NOTE (ARCH-DECLARATIVE-001): Build<string>() binds a bare string as
+    # workflow input -- there is no structured Workflow.Inputs object, and
+    # only Local/System resolve in this engine's PowerFx scope (confirmed via
+    # the real parser error: "Name isn't valid. 'Workflow' isn't recognized").
+    # subjectAgent is therefore carried as a Local variable, not a workflow
+    # input. Hardcoded to filesystem-agent for this validation run; making it
+    # truly per-cycle-configurable would require a structured TInput plus an
+    # inputTransform mapping fields into Local.* at trigger start.
+    - kind: SetVariable
+      id: init_subject_agent
+      displayName: Bind subject agent (Local, not Workflow.Inputs)
+      variable: Local.subjectAgent
+      value: "filesystem-agent"
+
+    # ── Cycle entry point (GotoAction target for retries) ────────────────
+    - kind: SendActivity
+      id: cycle_start
+      displayName: Announce cycle
+      activity:
+        text:
+          - =Concat("[PMCRO] Cycle ", Local.cycle, "/", Local.maxCycles)
+
+    # TEMP DEBUG (ARCH-DECLARATIVE-006 investigation, remove after use):
+    # dumps System.LastMessage.Text verbatim so we can confirm whether the
+    # seedIntent passed to RunStreamingAsync actually reaches PowerFx scope.
+    - kind: SendActivity
+      id: debug_dump_lastmessage
+      displayName: DEBUG dump LastMessage
+      activity:
+        text:
+          - =Concat("DEBUG_LASTMESSAGE=[", System.LastMessage.Text, "]")
+
+    # ── Planner turn ───────────────────────────────────────────────────────
+    # ARCH-DECLARATIVE-007 (2026-08-07): the previous version of this action
+    # only set input.arguments (seedIntent/retryContext), never input.messages.
+    # Per the InvokeAzureAgent reference (Microsoft Learn, "Declarative
+    # Workflows - Overview"), arguments is for Foundry-side prompt-template
+    # substitution ({{seedIntent}} etc.) and only has effect if the target
+    # agent's Instructions actually contain that placeholder -- confirmed
+    # PlannerInstructionsSchema in DeclarativeCycleRunner.cs does not.
+    # messages is the field that actually delivers conversational content to
+    # ANY AIAgent (local ChatClientAgent or real Foundry agent). PlannerAgent
+    # here is a local qwen3:8b-backed ChatClientAgent, not a real Foundry
+    # agent with template-configured instructions, so arguments alone was a
+    # silent no-op: the Planner was receiving zero conversational input every
+    # cycle, regardless of seed content -- fully consistent with every
+    # observed run producing a generic, content-free plan. Sending seedIntent
+    # via UserMessage() as input.messages is the actual fix; arguments is kept
+    # only in case a future real-Foundry PlannerAgent wants the named value.
+    - kind: InvokeAzureAgent
+      id: invoke_planner
+      displayName: Planner produces the atomic step
+      agent:
+        name: PlannerAgent
+      conversationId: =System.ConversationId
+      input:
+        messages: =UserMessage(System.LastMessage.Text)
+        arguments:
+          seedIntent: =System.LastMessage.Text
+          retryContext: =Local.retryContext
+      output:
+        responseObject: Local.PlannerResult
+        # ARCH-DECLARATIVE-010 (2026-08-07): Local.PlannerResult is opaque to
+        # PowerFx -- neither .text/.Text member access nor Text() coercion on
+        # the Local variable works ("Name isn't valid" / "invalid arguments").
+        # System.LastMessage.Text, by contrast, is a properly PowerFx-typed
+        # system variable and is exactly how the earlier ARCH-DECLARATIVE-007
+        # fix threaded the seed intent into the Planner. Setting autoSend:true
+        # here appends this response to the conversation so the NEXT turn can
+        # read it the same proven way, instead of dereferencing Local.*Result.
+        autoSend: true
+
+    # ── ARCH-DECLARATIVE-013/014 (2026-08-07): quote-delimited JSON-field
+    # extraction from System.LastMessage.Text was attempted here (pulling
+    # "instruction_for_subject" out with Find()/Mid()) and then abandoned after
+    # extensive isolated testing (see /home/claude test-stringops.yaml history
+    # and the ARCH-DECLARATIVE-013 write-up) proved Find() unreliably returns
+    # blank against ANY text sourced from System.LastMessage/AgentResponse
+    # content in this preview SDK build (Microsoft.Agents.AI.Workflows.Declarative,
+    # net11.0 preview) — confirmed even for a single plain letter, confirmed
+    # immune to Text()/Concat()/"&" coercion, confirmed immune to the
+    # documented Last(Local.X).Text table-unwrap pattern from Microsoft's own
+    # sample code. Root cause is in the SDK, not this file's PowerFx. Rather
+    # than fight it, this fix moved to the actually-correct layer: the subject
+    # agent's own Instructions (see Program.cs, ARCH-DECLARATIVE-014) now
+    # explicitly teach it to read the Planner's raw JSON (step.action /
+    # step.inputs) and call the named tool immediately, so no YAML-side string
+    # extraction is needed at all. instruction_for_subject stays in the
+    # Planner's schema (DeclarativeCycleRunner.cs) as optional human-readable
+    # context inside the JSON blob, not as something the workflow parses out.
+    #
+    # ── Subject agent turn (the TYPE1/TYPE2 tool-using agent) ─────────────
+    # ARCH-DECLARATIVE-008 (2026-08-07): this turn had NO input block at all --
+    # not even the broken arguments-only pattern invoke_planner had. It was
+    # relying purely on shared conversationId context, but every upstream turn
+    # sets output.autoSend: false, so nothing is ever appended to that
+    # conversation. Forwarding the Planner's full raw JSON response
+    # (System.LastMessage.Text, populated by invoke_planner's autoSend:true)
+    # as input.messages -- same proven pattern used successfully for
+    # invoke_checker/invoke_reflector below.
+    - kind: InvokeAzureAgent
+      id: invoke_subject
+      displayName: Subject agent executes the planned step
+      agent:
+        name: =Local.subjectAgent
+      conversationId: =System.ConversationId
+      input:
+        messages: =UserMessage(System.LastMessage.Text)
+      output:
+        responseObject: Local.SubjectResult
+        autoSend: true
+
+    # ── HIL gate: TYPE1_PENDING requires human approval before Checker sees
+    #    real results (mirrors DispatchType1 in PmcroCycleWorkflow.cs) ─────
+    # ARCH-DECLARATIVE-016 (2026-08-09): ARCH-DECLARATIVE-015's risk confirmed
+    # live -- Find("type1_pending", System.LastMessage.Text) never evaluated
+    # true (same SDK-level Find()-against-Activity-text bug as
+    # ARCH-DECLARATIVE-013), so the If/then wrapper below never triggered
+    # RequestExternalInput, and HandleType1ApprovalAsync in
+    # DeclarativeCycleRunner.cs -- which was already implemented correctly --
+    # was unreachable. Fix: same class as ARCH-DECLARATIVE-014/007 (stop
+    # fighting Find(), move the decision to C#). RequestExternalInput is now
+    # UNCONDITIONAL every cycle; HandleType1ApprovalAsync's own JSON parsing
+    # (real captured text, unaffected by the SDK bug) is the actual gate.
+    # This is safe for ordinary TYPE2 cycles: that method only calls
+    # IHilChannel.RequestAsync (the real human prompt) when it actually finds
+    # a type1_pending stub in the subject agent's buffer -- when there is
+    # none, it returns false without prompting and leaves the buffer
+    # untouched, so TYPE2 turns pass through with no behavior change.
+    - kind: RequestExternalInput
+      id: hil_approve_type1
+      displayName: HIL approval gate (real decision made in C# -- see HandleType1ApprovalAsync)
+      prompt:
+        text: =Concat("Approve TYPE1 action for ", Local.subjectAgent, "?")
+      variable: Local.HilApproval
+      default: "denied"
+
+    # ── Checker turn ────────────────────────────────────────────────────────
+    # ARCH-DECLARATIVE-008: same gap as invoke_subject -- forward the actual
+    # subject-agent output so the Checker audits real content instead of
+    # falling back to generic boilerplate with nothing to check against.
+    - kind: InvokeAzureAgent
+      id: invoke_checker
+      displayName: Checker audits the artifact
+      agent:
+        name: CheckerAgent
+      conversationId: =System.ConversationId
+      input:
+        messages: =UserMessage(System.LastMessage.Text)
+      output:
+        responseObject: Local.CheckerResult
+        autoSend: true
+
+    # ── Reflector turn ──────────────────────────────────────────────────────
+    # ARCH-DECLARATIVE-008: same gap -- Reflector needs the Checker's verdict,
+    # not just whatever the shared conversation happened to accumulate.
+    - kind: InvokeAzureAgent
+      id: invoke_reflector
+      displayName: Reflector decides disposition
+      agent:
+        name: ReflectorAgent
+      conversationId: =System.ConversationId
+      input:
+        messages: =UserMessage(System.LastMessage.Text)
+      output:
+        responseObject: Local.ReflectorResult
+        autoSend: true
+
+    # ── Loop / seal decision (EC-010/012: trail write happens per-turn via
+    #    the host app's ITrailWriter, not modeled in the YAML itself).
+    #    Field name matches the real Reflector schema (PmcroLoop.cs / this
+    #    harness's ReflectorAgent instructions): "signal", not "disposition".
+    # ARCH-DECLARATIVE-010: was Local.ReflectorResult.signal = "RETRY" -- same
+    # opaque-Local.*Result problem as everywhere else in this file. Reflector
+    # runs with autoSend:true, so its verdict is System.LastMessage.Text here;
+    # substring match on the "signal" field mirrors the type1_pending pattern
+    # since PowerFx can't parse the JSON into a typed Record for this variable.
+    # ARCH-DECLARATIVE-015 (2026-08-07): same unresolved Find()-vs-Activity-text
+    # risk as check_type1_pending above -- not yet live-verified with a real
+    # RETRY signal.
+    - kind: If
+      id: check_disposition
+      condition: =And(Find("""signal"": ""RETRY""", System.LastMessage.Text) > 0, Local.cycle < Local.maxCycles)
+      then:
+        - kind: SetVariable
+          id: increment_cycle
+          variable: Local.cycle
+          value: =Local.cycle + 1
+        # ARCH-DECLARATIVE-014 (2026-08-07): resolved -- was going to need a
+        # Find()/Mid() extraction of Local.ReflectorResult.retryContext, but
+        # ARCH-DECLARATIVE-013 proved that extraction path unreliable at the
+        # SDK level. Forwarding the Reflector's full raw JSON as retryContext
+        # (same "stop fighting Find(), forward the whole blob" strategy used
+        # for invoke_subject) avoids needing the extraction at all -- the
+        # Planner's instructions already tell it retryContext may be a full
+        # JSON blob to read next_seed_intent/signal from, not a plain string.
+        - kind: SetVariable
+          id: carry_retry_context
+          variable: Local.retryContext
+          value: =System.LastMessage.Text
+        - kind: GotoAction
+          actionId: cycle_start
+      else:
+        - kind: EndWorkflow
+          id: seal_trail
+          displayName: Disposition is Accept or Halt — end cycle

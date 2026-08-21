@@ -1,0 +1,9 @@
+# src/frontend/.gitignore
+node_modules/
+.next/
+out/
+build/
+.env*.local
+next-env.d.ts
+*.tsbuildinfo
+.DS_Store

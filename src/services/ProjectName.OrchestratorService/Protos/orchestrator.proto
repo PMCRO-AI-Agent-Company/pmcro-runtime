@@ -1,0 +1,31 @@
+syntax = "proto3";
+
+// Distinct namespace to avoid collision with ProjectName.OrchestratorService (the assembly)
+option csharp_namespace = "ProjectName.OrchestratorService";
+
+package pmcro.v1;
+
+service Orchestrator {
+  rpc RunCycle (CycleRequest) returns (CycleResponse);
+}
+
+message CycleRequest {
+  string seed_intent   = 1;
+  string trail_id      = 2;
+  string project       = 3;
+  string subject_agent = 4;
+}
+
+message CycleResponse {
+  bool   ok               = 1;
+  string error            = 2;
+  string trail_id         = 3;
+  string disposition      = 4;
+  string final_output     = 5;
+  int32  cycle_number     = 6;
+  // THE SUCCESSION LAW: non-empty means the Reflector handed a self-contained
+  // Baton to the next trail (see PmcroResult.NextSeedIntent / ReflectorFrame
+  // .NextSeedIntent). Empty string means the chain stops here. CycleController's
+  // Night Shift chaining loop reads this field to decide whether to auto-continue.
+  string next_seed_intent = 7;
+}

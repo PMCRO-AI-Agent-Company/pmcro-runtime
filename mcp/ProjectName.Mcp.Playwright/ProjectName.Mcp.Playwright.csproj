@@ -1,12 +1,64 @@
-<Project Sdk="Microsoft.NET.Sdk">
-  <PropertyGroup>
-    <OutputType>Exe</OutputType>
-    <TargetFramework>net11.0</TargetFramework>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <Nullable>enable</Nullable>
-  </PropertyGroup>
-  <ItemGroup>
-    <PackageReference Include="ModelContextProtocol" />
-    <PackageReference Include="Microsoft.Playwright" />
-  </ItemGroup>
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
+	<!--
+    ═══════════════════════════════════════════════════════════════
+    PROJECTNAME — MCP.PLAYWRIGHT
+    Identity  : Browser Automation Actuator (MCP Server)
+    Law Anchor: ARCH-013, SUB-LAW-002, F-GOV-001
+    
+    CLEANUP NOTE: 
+    Removed Microsoft.Agents.AI and Workflows. 
+    The MCP Server provides the "Hands" (Tools). 
+    The "Brain" (Orchestration) lives in the LLM/Agent Client.
+    ═══════════════════════════════════════════════════════════════
+  -->
+
+	<PropertyGroup>
+		<TargetFramework>net11.0</TargetFramework>
+		<Nullable>enable</Nullable>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<GenerateDocumentationFile>false</GenerateDocumentationFile>
+		<NoWarn>$(NoWarn);CS1591</NoWarn>
+	</PropertyGroup>
+
+	<PropertyGroup>
+		<UserSecretsId>add775fb-a819-4ebd-8128-535019d2152e</UserSecretsId>
+		<DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
+		<DockerfileContext>..\..\..</DockerfileContext>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<Using Include="System.ComponentModel" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<!-- ExcludeAssets=analyzers: disables ModelContextProtocol.Analyzers source generator
+		     which emits code using [Description] without System.ComponentModel using.
+		     Server projects don't need the generated tool metadata — reflection-based
+		     registration via WithTools<T>() works at runtime without the generator. -->
+		<PackageReference Include="Microsoft.Extensions.Http.Resilience" />
+		<PackageReference Include="Microsoft.Extensions.ServiceDiscovery" />
+		<PackageReference Include="ModelContextProtocol" ExcludeAssets="analyzers" />
+		<PackageReference Include="ModelContextProtocol.AspNetCore" ExcludeAssets="analyzers" />
+
+		<!-- 
+            Patchright — Stealth Playwright drop-in. 
+            Replaces Microsoft.Playwright to bypass Cloudflare/Bot detection 
+            at the binary level.
+        -->
+		<PackageReference Include="Patchright" />
+
+		<!-- Containerization Support -->
+	</ItemGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\..\src\ProjectName.ServiceDefaults\ProjectName.ServiceDefaults.csproj" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<Folder Include="Configuration\" />
+		<Folder Include="Tools\" />
+		<Folder Include="Resources\" />
+		<Folder Include="Prompts\" />
+	</ItemGroup>
+
 </Project>

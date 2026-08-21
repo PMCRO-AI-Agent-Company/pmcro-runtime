@@ -1,14 +1,40 @@
-<Project Sdk="Microsoft.NET.Sdk.Web">
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
+
   <PropertyGroup>
     <TargetFramework>net11.0</TargetFramework>
-    <Nullable>enable</Nullable>
+    <RootNamespace>ProjectName.OrchestratorApi</RootNamespace>
     <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <NoWarn>$(NoWarn);CS1591;EXTEXP0001;CS0436</NoWarn>
+    <!-- CS0436: OrchestratorApi's own top-level Program.cs collides in name with
+         OrchestratorService's top-level Program (pulled in via the ProjectReference
+         below, needed only for the generated Orchestrator.OrchestratorClient gRPC
+         stub). Benign — Program.cs already resolves typeof(Program) to the local
+         type explicitly (see AddApplicationPart(typeof(Program).Assembly)), which
+         is exactly what the compiler confirms in the warning text. -->
   </PropertyGroup>
+
   <ItemGroup>
-    <PackageReference Include="Microsoft.AspNetCore.OpenApi" />
+    <PackageReference Include="Microsoft.OpenApi" />
     <PackageReference Include="Scalar.AspNetCore" />
+    <PackageReference Include="Microsoft.AspNetCore.OpenApi" />
+    <PackageReference Include="Grpc.Net.Client" />
+    <PackageReference Include="Grpc.AspNetCore.Server.ClientFactory" />
+    <PackageReference Include="Google.Protobuf" />
+    <PackageReference Include="Grpc.Tools">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="Microsoft.Extensions.AI" />
+    <PackageReference Include="Microsoft.Extensions.AI.Abstractions" />
+    <PackageReference Include="OllamaSharp" />
+    <PackageReference Include="Microsoft.Extensions.Http.Resilience" />
+    <PackageReference Include="Microsoft.Extensions.ServiceDiscovery" />
   </ItemGroup>
+
   <ItemGroup>
     <ProjectReference Include="..\ProjectName.ServiceDefaults\ProjectName.ServiceDefaults.csproj" />
+    <ProjectReference Include="..\services\ProjectName.OrchestratorService\ProjectName.OrchestratorService.csproj" />
   </ItemGroup>
+
 </Project>
