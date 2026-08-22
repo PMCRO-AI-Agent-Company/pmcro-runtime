@@ -1859,3 +1859,48 @@ body {
 .trail-index-card strong { font: 500 14px var(--font-body); }
 .trail-index-card small { color: var(--colony-muted); font: 10px var(--font-mono); }
 @media (max-width: 720px) { .product-page { padding: 32px 18px 80px; } .product-grid { grid-template-columns: 1fr; } }
+
+/* ── Harness workspace transcript (ARCH-HARNESS-UI-002) ──────────────────── */
+.harness-transcript {
+  display: grid;
+  gap: 12px;
+  max-height: 520px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+.harness-turn { display: grid; gap: 8px; }
+.harness-turn-text {
+  margin: 0;
+  padding: 12px 14px;
+  border: 1px solid var(--colony-border);
+  border-radius: 12px;
+  background: rgba(24,24,27,.76);
+  color: var(--colony-text);
+  font: 400 13px/1.55 var(--font-body);
+  white-space: pre-wrap;
+}
+.harness-tool-call {
+  display: grid;
+  gap: 6px;
+  padding: 10px 12px;
+  border: 1px solid var(--colony-border-bright);
+  border-radius: 10px;
+  background: rgba(56,189,178,0.06);
+}
+.harness-tool-call-name {
+  font: 500 12px var(--font-mono);
+  color: var(--colony-accent);
+}
+.harness-tool-call-args {
+  margin: 0;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: rgba(0,0,0,0.35);
+  color: var(--colony-muted);
+  font: 11px/1.5 var(--font-mono);
+  white-space: pre-wrap;
+  overflow-x: auto;
+}
+.harness-tool-result { display: grid; gap: 6px; padding-left: 8px; border-left: 2px solid var(--colony-border-bright); }
+.harness-tool-result-label { font: 500 11px var(--font-mono); color: var(--colony-muted); text-transform: uppercase; letter-spacing: .04em; }
+@media (max-width: 640px) { .harness-transcript { max-height: 420px; } }
