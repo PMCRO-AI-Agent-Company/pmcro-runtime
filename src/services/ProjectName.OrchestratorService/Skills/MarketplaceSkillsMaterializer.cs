@@ -111,6 +111,24 @@ public sealed class MarketplaceSkillsMaterializer(
                 continue;
             }
 
+            // ARCH-SKILLS-ONDEMAND-001 (2026-08-21): "stage" gates whether a listed
+            // plugin is actually mirrored into StagingRoot / advertised to the live
+            // agent via AgentSkillsProvider. Absent -> treated as true (back-compat
+            // with the pre-2026-08-21 manifest, which had no "stage" field). This
+            // lets marketplace.json serve as the single index for BOTH the frontend
+            // /skills browsing page (reads the whole file, ignores this flag) and
+            // live-agent materialization (this loop, which honors it) without two
+            // separate files to keep in sync. See ARCH-SKILLS-ONDEMAND-001.md for
+            // why the dotnet-* long tail is currently stage:false.
+            var stage = !plugin.TryGetProperty("stage", out var stageProp) || stageProp.ValueKind != JsonValueKind.False;
+            if (!stage)
+            {
+                logger.LogInformation(
+                    "[MarketplaceSkills] plugin '{Name}' has stage:false -- listed for browsing, not materialized.",
+                    name);
+                continue;
+            }
+
             var pluginRoot = Path.GetFullPath(Path.Combine(repoRoot, source));
             if (!Directory.Exists(pluginRoot))
             {

@@ -90,11 +90,25 @@ var orchestratorApi = builder
     .WithReference(mcpPlaywright)
     .WithReference(mcpTerminal)
     .WithReference(orchestratorService)
-    // ARCH-TRAILS-001 (2026-07-11): Trails__Root override removed — it was hardcoded
-    // to a stale S:\.pmcro\trails from before the sandbox root moved to B:\pmcro-cline.
-    // TrailReader.TrailsRoot falls back to env.ContentRootPath + ".pmcro\trails" when
-    // no config override is set, which correctly resolves to the real on-disk trails
-    // under B:\pmcro-cline\.pmcro\trails. See Services/TrailReader.cs.
+    // ARCH-TRAILS-002 (2026-08-21): repoRoot was never actually wired to this
+    // project — it silently fell back to appsettings.Development.json's own
+    // Orchestrator:FileSystemRoot (W:\PMCR-O), a THIRD root diverged from both
+    // orchestratorService's live root and the frontend's own repo root. That
+    // meant TrailReader (here) and FileTrailWriter (orchestratorService) could
+    // silently disagree on where trails live even after the 2026-07-21 "Bug 2
+    // divergence" fix, since that fix only made them agree on the *mechanism*
+    // (both read Orchestrator:FileSystemRoot), not the *value* — this project
+    // never got repoRoot injected at all. Explicit WithEnvironment below closes
+    // that gap the same way orchestratorService already has it.
+    .WithEnvironment("Orchestrator__FileSystemRoot", repoRoot)
+    // ARCH-TRAILS-001 (2026-07-11, superseded 2026-08-21 by ARCH-TRAILS-002 above):
+    // this used to read "no config override is set" because Trails__Root was the
+    // only override ever removed here — Orchestrator__FileSystemRoot itself was
+    // never actually set on this project until ARCH-TRAILS-002. Both are now
+    // explicit: FileSystemRoot = repoRoot (Z:\pmcro-runtime), and TrailReader
+    // still has no separate Trails__Root override, so TrailsRoot correctly
+    // resolves to {FileSystemRoot}\.pmcro\trails — the same path
+    // FileTrailWriter (orchestratorService) writes to. See Services/TrailReader.cs.
     .WaitFor(modelOrchestrator)
     .WaitFor(orchestratorService);
 

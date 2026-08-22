@@ -1,0 +1,165 @@
+{
+  "name": "pmcro-runtime",
+  "owner": {
+    "name": "Tooensure LLC"
+  },
+  "_comment": "Full cross-repo index for pmcro-runtime (EC-019 reconciliation 2026-08-21, expanded same day per Shawn's 'all skills into project' request). ALL 25 plugins are listed here so the frontend /skills browsing page shows the complete catalog. Only plugins with \"stage\": true are actually mirrored by MarketplaceSkillsMaterializer into the live agent's StagingRoot / advertised via MAF's AgentSkillsProvider -- see ARCH-SKILLS-ONDEMAND-001.md in this same folder for why staging is still curated and what unblocks widening it safely.",
+  "plugins": [
+    {
+      "name": "skill-creator",
+      "source": "../pmcro-skills/plugins/skill-creator",
+      "description": "Scaffolds and updates PMCR-O skills, plugins, MCP specs, and assets (create-* + update-skill).",
+      "stage": true
+    },
+    {
+      "name": "pmcro-orchestrator",
+      "source": "../pmcro-skills/plugins/pmcro-orchestrator",
+      "description": "PMCR-O Orchestrator phase: run one governed macro-cycle (Plan -> Make -> Check -> Reflector) and seal a trail.",
+      "stage": true
+    },
+    {
+      "name": "pmcro-planner",
+      "source": "../pmcro-skills/plugins/pmcro-planner",
+      "description": "PMCR-O Planner phase: decompose the active seed into a bounded, checkable unit; emit PlannerFrame.",
+      "stage": true
+    },
+    {
+      "name": "pmcro-maker",
+      "source": "../pmcro-skills/plugins/pmcro-maker",
+      "description": "PMCR-O Maker phase: execute the plan; stub-and-halt on TYPE1 flags; emit MakerFrame.",
+      "stage": true
+    },
+    {
+      "name": "pmcro-checker",
+      "source": "../pmcro-skills/plugins/pmcro-checker",
+      "description": "PMCR-O Checker phase: independently re-verify every SuccessCriterion; emit CheckerFrame.",
+      "stage": true
+    },
+    {
+      "name": "pmcro-reflector",
+      "source": "../pmcro-skills/plugins/pmcro-reflector",
+      "description": "PMCR-O Reflector phase: decide ACCEPT/HALT, seal disposition, update seed-queue.",
+      "stage": true
+    },
+    {
+      "name": "dotnet-aspire",
+      "source": "../dotnet-skills/plugins/dotnet-aspire",
+      "description": "Scaffold/extend .NET Aspire 13+ apps with Ollama GPU containers, MCP servers, and CopilotKit -- the pattern this repo's own AppHost.cs follows.",
+      "stage": true
+    },
+    {
+      "name": "dotnet-maf",
+      "source": "../dotnet-skills/plugins/dotnet-maf",
+      "description": "Microsoft Agent Framework skills -- the WorkflowBuilder/AIAgent layer PmcroLoop.cs is built on.",
+      "stage": true
+    },
+    {
+      "name": "github",
+      "source": "../github-skills/plugins/github",
+      "description": "GitHub repository operations for the PMCR-O base and packs using connected GitHub MCP tools.",
+      "stage": true
+    },
+    {
+      "name": "figma",
+      "source": "../figma-skills/plugins/figma",
+      "description": "Figma design workflow: link a file, generate designs, pull grounding context, export assets.",
+      "stage": true
+    },
+    {
+      "name": "dotnet",
+      "source": "../dotnet-skills/plugins/dotnet",
+      "description": "Core .NET SDK setup and general-purpose dotnet tooling.",
+      "stage": false
+    },
+    {
+      "name": "dotnet-advanced",
+      "source": "../dotnet-skills/plugins/dotnet-advanced",
+      "description": "Advanced .NET techniques: C# scripting, P/Invoke, NuGet trusted publishing.",
+      "stage": false
+    },
+    {
+      "name": "dotnet-ai",
+      "source": "../dotnet-skills/plugins/dotnet-ai",
+      "description": "AI technology-selection guidance for .NET applications.",
+      "stage": false
+    },
+    {
+      "name": "dotnet-aspnetcore",
+      "source": "../dotnet-skills/plugins/dotnet-aspnetcore",
+      "description": "ASP.NET Core web APIs, OpenTelemetry, file upload, Blazor Server-to-webapp conversion.",
+      "stage": false
+    },
+    {
+      "name": "dotnet-blazor",
+      "source": "../dotnet-skills/plugins/dotnet-blazor",
+      "description": "Blazor component authoring, data fetching, JS interop, auth, prerendering.",
+      "stage": false
+    },
+    {
+      "name": "dotnet-data",
+      "source": "../dotnet-skills/plugins/dotnet-data",
+      "description": "EF Core query optimization and data-driven ASP.NET Core scaffolding.",
+      "stage": false
+    },
+    {
+      "name": "dotnet-diag",
+      "source": "../dotnet-skills/plugins/dotnet-diag",
+      "description": "Performance analysis, dumps, crash symbolication (Apple/Android), microbenchmarking.",
+      "stage": false
+    },
+    {
+      "name": "dotnet-experimental",
+      "source": "../dotnet-skills/plugins/dotnet-experimental",
+      "description": "Experimental analyzers: SIMD vectorization, mock-usage analysis, test maintainability.",
+      "stage": false
+    },
+    {
+      "name": "dotnet-maui",
+      "source": "../dotnet-skills/plugins/dotnet-maui",
+      "description": ".NET MAUI theming, shell navigation, data binding, dependency injection, CollectionView.",
+      "stage": false
+    },
+    {
+      "name": "dotnet-msbuild",
+      "source": "../dotnet-skills/plugins/dotnet-msbuild",
+      "description": "MSBuild internals: targets, item management, build performance, binlog analysis.",
+      "stage": false
+    },
+    {
+      "name": "dotnet-nuget",
+      "source": "../dotnet-skills/plugins/dotnet-nuget",
+      "description": "NuGet package management, including Central Package Management conversion.",
+      "stage": false
+    },
+    {
+      "name": "dotnet-template-engine",
+      "source": "../dotnet-skills/plugins/dotnet-template-engine",
+      "description": "dotnet new template authoring, discovery, validation, and comparison.",
+      "stage": false
+    },
+    {
+      "name": "dotnet-test",
+      "source": "../dotnet-skills/plugins/dotnet-test",
+      "description": "Test authoring, grading, coverage, CRAP score, static-dependency detection, MTP hot reload.",
+      "stage": true
+    },
+    {
+      "name": "dotnet-test-migration",
+      "source": "../dotnet-skills/plugins/dotnet-test-migration",
+      "description": "Migrations between xUnit/MSTest/VSTest/MTP test framework versions.",
+      "stage": false
+    },
+    {
+      "name": "dotnet-upgrade",
+      "source": "../dotnet-skills/plugins/dotnet-upgrade",
+      "description": ".NET version upgrade paths, nullable-reference migration, AOT compatibility, thread-abort migration.",
+      "stage": false
+    },
+    {
+      "name": "dotnet11",
+      "source": "../dotnet-skills/plugins/dotnet11",
+      "description": ".NET 11-specific APIs, e.g. System.Text.Json updates.",
+      "stage": false
+    }
+  ]
+}

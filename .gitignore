@@ -427,3 +427,15 @@ FodyWeavers.xsd
 *.msix
 *.msm
 *.msp
+
+
+# ── PMCR-O generated runtime output (not source, ARCH-GITIGNORE-001 2026-08-22) ──
+# .pmcro/skills-staging/: materialized mirror of pmcro-skills plugin sources,
+# rebuilt by MarketplaceSkillsMaterializer on every startup -- committing it
+# would check in duplicate content that already lives canonically upstream.
+.pmcro/skills-staging/
+# agent-file-memory/: per-run scratch memory the Harness/Orchestrator agents
+# write during a session (see file_memory_write tool) -- ephemeral by design,
+# not durable evidence. Sealed trails (.pmcro/trails/) are the durable record
+# and are intentionally NOT ignored here.
+src/services/*/agent-file-memory/

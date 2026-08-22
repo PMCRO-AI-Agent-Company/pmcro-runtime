@@ -10,17 +10,27 @@
     <!-- Aspire.Hosting.AppHost intentionally NOT listed here: Aspire.AppHost.Sdk
          implicitly adds this PackageReference, and CPM forbids centrally versioning
          implicit references (NU1009 fires otherwise). -->
-    <PackageVersion Include="Aspire.Hosting" Version="13.4.6" />
-    <PackageVersion Include="Aspire.Hosting.PostgreSQL" Version="13.4.6" />
-    <PackageVersion Include="Aspire.StackExchange.Redis" Version="13.4.6" />
-    <PackageVersion Include="Aspire.Hosting.PostgreSQL.EntityFrameworkCore" Version="13.4.6" />
+    <PackageVersion Include="Aspire.Hosting" Version="13.5.1" />
+    <PackageVersion Include="Aspire.Hosting.PostgreSQL" Version="13.5.1" />
+    <PackageVersion Include="Aspire.StackExchange.Redis" Version="13.5.1" />
+    <PackageVersion Include="Aspire.Hosting.PostgreSQL.EntityFrameworkCore" Version="13.5.1" />
     <!-- ── Synced from B:\pmcro-cline\Directory.Packages.props (2026-07-15) ──
          W: was rebuilding these from scratch; B: already resolved every one
          of them against live NuGet, including the interdependent MAF preview
          track (Hosting/Hosting.OpenAI/DevUI/Harness/Hyperlight/AGUI all share
          the 260703.1 date-stamp). Copied verbatim rather than re-verifying,
          since B: is the working reference project. -->
-    <PackageVersion Include="Aspire.Hosting.JavaScript" Version="13.4.6" />
+    <!-- ARCH-ASPIRE-BUMP-002 (2026-08-21): bumped 13.4.6 to 13.5.1. The prior
+         edit left this at 13.4.6 reasoning that its own dependency constraint
+         (Aspire.Hosting >= 13.4.6) was satisfied by the 13.5.1 bump above.
+         WRONG. Got a runtime System.MethodAccessException:
+         JavaScriptHostingExtensions.AddNextJsApp (compiled against 13.4.6)
+         failing to call Aspire.Hosting.Utils.PathNormalizer.NormalizePathForCurrentPlatform
+         at 13.5.1. These packages share internal/friend-assembly APIs that are
+         NOT covered by semver dependency ranges: "ship in lockstep" means
+         same exact version, not merely satisfying >= constraints. Every
+         package in this family must move together on every bump. -->
+    <PackageVersion Include="Aspire.Hosting.JavaScript" Version="13.5.1" />
     <!-- Bumped to the 1.14.0 date-stamp (2026-07-21) family, 2026-07-22.
          VERIFIED against nuget.org/v3-flatcontainer per-package version lists
          (not just "dotnet list package outdated", which silently omits
@@ -82,7 +92,7 @@
          avoids the 2.0.0-preview line's in-flight 2026-07-28 protocol/session
          changes for something this load-bearing. -->
     <PackageVersion Include="ModelContextProtocol" Version="2.2.0" />
-    <PackageVersion Include="ModelContextProtocol.AspNetCore" Version="2.1.0" />
+    <PackageVersion Include="ModelContextProtocol.AspNetCore" Version="2.2.0" />
     <!-- ── gRPC (synced to B:\pmcro-cline, 2026-07-15) ───────────────────── -->
     <PackageVersion Include="Grpc.AspNetCore" Version="2.83.0" />
     <PackageVersion Include="Grpc.AspNetCore.Server.Reflection" Version="2.83.0" />
