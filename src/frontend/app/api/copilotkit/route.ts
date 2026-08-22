@@ -99,12 +99,14 @@ const runtime = new CopilotRuntime({
   // the props AgentCard.tsx and TrailView.tsx actually accept -- so the
   // Orchestrator can ask for "a trail card" or "an agent domain card" as a
   // semantic unit instead of hand-assembling one from Row/Column/Text every
-  // time. IMPORTANT / honest caveat: this only injects the schema as tool
-  // context so qwen3:8b knows the shape exists -- there is no client-side
-  // renderer yet that maps catalogId "pmcro-visual-bridge" component names to
-  // the real React components. Until that renderer exists, a render_a2ui call
-  // naming these components will not paint anything in the CopilotKit surface.
-  // Wiring that renderer is a separate follow-up, not done in this pass.
+  // time. UPDATE (2026-08-22): the client-side renderer now exists --
+  // app/components/A2UIRenderer.tsx maps catalogId "pmcro-visual-bridge"
+  // TrailCard/AgentDomainCard to real TrailView/AgentCard components via
+  // useRenderTool, and is mounted in ConsoleView.tsx. A render_a2ui call
+  // naming these components WILL paint in the CopilotKit surface. What's
+  // still unverified: no observed live cycle has actually had qwen3:8b call
+  // render_a2ui with this schema -- the wiring is confirmed on disk, not
+  // confirmed to fire end-to-end.
   a2ui: {
     injectA2UITool: true,
     schema: {
