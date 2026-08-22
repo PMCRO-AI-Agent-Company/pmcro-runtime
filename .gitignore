@@ -439,3 +439,13 @@ FodyWeavers.xsd
 # not durable evidence. Sealed trails (.pmcro/trails/) are the durable record
 # and are intentionally NOT ignored here.
 src/services/*/agent-file-memory/
+
+# ── Local one-off debug scripts (ARCH-GITIGNORE-001 2026-08-22 follow-up) ──
+# Ad-hoc PowerShell scripts used to debug a specific issue (A2UI mount,
+# CopilotKit import version, locked node_modules cleanup). Not part of the
+# build, not referenced by any project or CI step. Left on disk since they
+# may be reused for the same class of debugging, but not committed.
+/check-a2ui-mount.ps1
+/check-copilotkit-imports.ps1
+/clear-locked-node-modules.ps1
+
