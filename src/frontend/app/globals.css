@@ -235,6 +235,24 @@
   scrollbar-color: var(--colony-border-bright) transparent;
 }
 
+/* ARCH-SR-ONLY-001 (2026-08-22): .sr-only was referenced by ConsoleView.tsx's
+   hero-bar label (and possibly elsewhere) but never actually defined --
+   confirmed via full-file search, zero prior matches. The label rendered
+   as plain visible bold text crowding the hero-bar's placeholder/button,
+   only obvious now that the canvas redesign narrowed that column from
+   960px to 780px. Standard visually-hidden-but-accessible pattern. */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
 ::-webkit-scrollbar {
   width: 10px;
   height: 10px;
@@ -896,6 +914,79 @@ body {
 .phase-rail-idle {
   color: var(--colony-muted);
   font-size: 14px;
+}
+
+/* ── Canvas shell (ARCH-CANVAS-001) ───────────────────────────────────────
+   Replaces the old single-column scroll on "/" with the CopilotKit
+   "Canvas" pattern (chat rail + live generative-UI canvas), per
+   CopilotKit/examples/canvas/mastra-pm — a persistent chat pane pinned
+   beside a workspace that renders agent state directly, instead of a
+   floating overlay chat above a static admin page. Scoped to Console only:
+   other routes keep the floating ChatPanel (see ChatPanel.tsx's pathname
+   check). */
+.canvas-shell {
+  display: flex;
+  align-items: stretch;
+  min-height: calc(100vh - 0px);
+}
+
+.canvas-rail {
+  flex: 0 0 380px;
+  width: 380px;
+  border-right: 1px solid var(--colony-border);
+  background: var(--colony-panel);
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.canvas-rail-header {
+  padding: 18px 20px 14px;
+  border-bottom: 1px solid var(--colony-border);
+}
+
+.canvas-rail-title {
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 650;
+  margin: 0 0 8px;
+}
+
+.canvas-rail-chat {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* CopilotChat needs an explicit height context to scroll internally rather
+   than growing the rail past the viewport. */
+.canvas-rail-chat [data-copilotkit] {
+  height: 100%;
+}
+
+.canvas-pane {
+  flex: 1 1 auto;
+  min-width: 0;
+  max-width: 780px;
+  margin: 0 auto;
+  padding: 48px 32px 64px;
+}
+
+@media (max-width: 960px) {
+  .canvas-shell {
+    flex-direction: column;
+  }
+  .canvas-rail {
+    flex: 0 0 auto;
+    width: auto;
+    min-height: 420px;
+    border-right: none;
+    border-bottom: 1px solid var(--colony-border);
+  }
+  .canvas-pane {
+    padding: 32px 20px 48px;
+  }
 }
 
 /* ── Quiet info cards ─────────────────────────────────────────────────── */
@@ -1860,47 +1951,32 @@ body {
 .trail-index-card small { color: var(--colony-muted); font: 10px var(--font-mono); }
 @media (max-width: 720px) { .product-page { padding: 32px 18px 80px; } .product-grid { grid-template-columns: 1fr; } }
 
-/* ── Harness workspace transcript (ARCH-HARNESS-UI-002) ──────────────────── */
-.harness-transcript {
-  display: grid;
-  gap: 12px;
-  max-height: 520px;
-  overflow-y: auto;
-  padding-right: 4px;
-}
-.harness-turn { display: grid; gap: 8px; }
-.harness-turn-text {
-  margin: 0;
-  padding: 12px 14px;
+/* ── Harness workspace chat (ARCH-COPILOTCHAT-EMBED-001) ──────────────────
+   Frames the embedded <CopilotChat agentId="Harness" /> to match the
+   .product-card card language (same border/radius/background) rather than
+   letting it float unbounded. The SDK's own CopilotChatView is a flex
+   column (scrollable message list + pinned input) -- harness-shell gives
+   it a bounded height so that flex column has somewhere to size against;
+   harness-chat itself stays height:100% so the SDK's internal scroll
+   region (not the page) handles overflow as the transcript grows. */
+.harness-shell {
   border: 1px solid var(--colony-border);
-  border-radius: 12px;
-  background: rgba(24,24,27,.76);
-  color: var(--colony-text);
-  font: 400 13px/1.55 var(--font-body);
-  white-space: pre-wrap;
+  border-radius: 14px;
+  background: rgba(24, 24, 27, .76);
+  overflow: hidden;
+  /* ARCH-HARNESS-SHELL-TIGHTEN-001 (2026-08-22): 72vh left a mostly-empty
+     black box around the centered welcome screen on an empty thread (see
+     screenshot from live Aspire run) -- CopilotKit's own welcome state is
+     meant to sit in a snug frame, not a near-fullscreen one. 480px fits
+     the welcome message + input comfortably; once real messages exist the
+     SDK's internal ScrollView takes over scrolling within this height, so
+     a long transcript is still fully usable -- it just doesn't idle at a
+     towering empty height before the first turn. */
+  height: 480px;
 }
-.harness-tool-call {
-  display: grid;
-  gap: 6px;
-  padding: 10px 12px;
-  border: 1px solid var(--colony-border-bright);
-  border-radius: 10px;
-  background: rgba(56,189,178,0.06);
+.harness-chat {
+  height: 100%;
 }
-.harness-tool-call-name {
-  font: 500 12px var(--font-mono);
-  color: var(--colony-accent);
+@media (max-width: 640px) {
+  .harness-shell { height: min(70vh, 520px); border-radius: 12px; }
 }
-.harness-tool-call-args {
-  margin: 0;
-  padding: 8px 10px;
-  border-radius: 8px;
-  background: rgba(0,0,0,0.35);
-  color: var(--colony-muted);
-  font: 11px/1.5 var(--font-mono);
-  white-space: pre-wrap;
-  overflow-x: auto;
-}
-.harness-tool-result { display: grid; gap: 6px; padding-left: 8px; border-left: 2px solid var(--colony-border-bright); }
-.harness-tool-result-label { font: 500 11px var(--font-mono); color: var(--colony-muted); text-transform: uppercase; letter-spacing: .04em; }
-@media (max-width: 640px) { .harness-transcript { max-height: 420px; } }

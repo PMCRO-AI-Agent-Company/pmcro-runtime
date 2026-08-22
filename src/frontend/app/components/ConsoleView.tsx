@@ -11,18 +11,49 @@
 //
 // ARCH-VISUAL-BRIDGE-002 (2026-07-20): A2UI renderer integrated to display
 // TrailCard and AgentDomainCard components when the LLM calls render_a2ui.
+//
+// ARCH-OMODE-MERGE-001 (2026-08-22): Console and Harness were two separate
+// routes/nav entries for what the PMCR-O framework itself defines as ONE
+// outward-facing agent -- confirmed against
+// .pmcro/skills-staging/pmcro-orchestrator/orchestrate/agents/orchestrator.agent.md:
+// "I Am the Orchestrator... Only agent that speaks outward to the human
+// (COMPANY-001)" -- and orchestration-workflow.md: "The Orchestrator
+// selects O-Mode before dispatching Planner... See the O-Mode registry in
+// the `pmcro` core plugin." O-Mode is a per-cycle setting the Orchestrator
+// itself selects (sealed into 00-omode-audit.json alongside
+// autonomy_bounds), not a second agent identity with its own page. This
+// merges Harness's embedded CopilotChat into Console as the "Read-Only"
+// O-Mode, selected via the same pill-toggle pattern ChatPanel.tsx already
+// uses for its sidebar agent switch (.agent-mode-pill CSS, reused
+// verbatim). The O-Mode registry's real enumerated names live in the
+// `pmcro` core plugin, not materialized in this repo -- Governed/Read-Only
+// are what's confirmed today (Governed = full Plan->Make->Check->Reflect,
+// HIL-gated, trails sealed; Read-Only = MAF's harness loop, no gates, no
+// trail), swappable later if more O-Modes are added to that registry.
+// Mode lives in the URL (?mode=readonly) rather than local state alone so
+// ChatPanel's floating sidebar (which reads the same param) can't drift
+// out of sync with the main screen, and so the mode is bookmarkable/
+// shareable like any other Next.js route state.
 "use client";
 
-import { Fragment, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { z } from "zod";
-import { useRouter } from "next/navigation";
-import { useAgent, useCopilotKit, useFrontendTool } from "@copilotkit/react-core/v2";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useAgent, useCopilotKit, useFrontendTool, CopilotChat } from "@copilotkit/react-core/v2";
 import DomainSelector, { DOMAINS } from "./DomainSelector";
-import RoundTable from "./RoundTable";
 import TrailView, { type Trail } from "./TrailView";
 import A2UIRenderer from "./A2UIRenderer";
-import SkillSelector from "./SkillSelector";
 import type { SkillSummary } from "../lib/skills";
+
+// ARCH-CANVAS-001 (2026-08-22): SkillSelector and RoundTable removed from
+// this screen. Per ARCH-IA-SPLIT-001 the C-Suite roster was already
+// supposed to live only in /directory -- but SkillSelector's full catalog
+// ("02 · Context") and RoundTable ("04 · Evidence") were still duplicated
+// here, which is what the redesign is fixing. Skills: /skills is now the
+// only place to browse or select from the catalog. Round Table: /directory
+// is the canonical C-Suite view; there is no on-Console substitute -- the
+// live PhaseRail below already covers what a person needs to see about the
+// *current* cycle without re-rendering the whole roster inline.
 
 // ARCH-AGUI-STATE-001 (2026-07-13): mirrors ProjectName.OrchestratorService's
 // Services/PmcroStateBroadcast.cs PmcroCycleStateSnapshot record field-for-field.
@@ -102,6 +133,27 @@ function PhaseRail() {
   // if that default ever changes.
   const { agent } = useAgent({ agentId: "Orchestrator" });
   const state = agent.state as PmcroCycleState | undefined;
+
+  // ARCH-CANVAS-002 (2026-08-22): trailsByDomain is read server-side once
+  // per full page load (page.tsx's loadTrailsByDomain()) and handed down as
+  // a static prop -- a chat-triggered cycle that seals a NEW trail never
+  // re-fetches it, so the Trail Player below silently kept showing
+  // whichever trail was on disk at the last full load (confirmed live:
+  // ran a cycle via the rail chat, a real new trail sealed on disk, but the
+  // player still showed the previous one until a manual browser refresh).
+  // router.refresh() re-runs the Server Component tree in place without a
+  // client navigation, which is what actually re-reads the trails
+  // directory. Only fire on the Planning -> ... -> Sealed transition (a ref
+  // tracks the last seen phase) so this doesn't refresh on every render or
+  // every intermediate snapshot -- once per completed cycle.
+  const router = useRouter();
+  const lastPhaseRef = useRef<PmcroPhase | undefined>(undefined);
+  useEffect(() => {
+    if (state?.phase === "Sealed" && lastPhaseRef.current !== "Sealed") {
+      router.refresh();
+    }
+    lastPhaseRef.current = state?.phase;
+  }, [state?.phase, router]);
 
   // FIX (2026-07-13): during Next.js static prerendering of "/" there's no
   // live AG-UI connection, so agent.state comes back as {} (truthy, but with
@@ -187,6 +239,60 @@ function PhaseRail() {
   );
 }
 
+// ── O-Mode selector (ARCH-OMODE-MERGE-001) ──────────────────────────────
+// Deliberately visually identical to ChatPanel.tsx's AgentModeToggle
+// (.agent-mode-pill) -- same selection, same two options, so a person
+// doesn't have to learn a second control that means the same thing.
+// Exported so ChatPanel.tsx derives its agentId from this same param/type
+// instead of re-declaring a second copy that could silently drift out of
+// sync with this one (the whole point of ARCH-OMODE-MERGE-001).
+export type OMode = "governed" | "readonly";
+export const OMODE_PARAM = "mode";
+
+const OMODES: { id: OMode; label: string; title: string }[] = [
+  { id: "governed", label: "Governed", title: "Full PMCR-O cycle (Plan \u2192 Make \u2192 Check \u2192 Reflect), HIL-gated, seals a trail" },
+  { id: "readonly", label: "Read-Only", title: "MAF harness loop \u2014 multi-turn tool use, read-only, no PMCR-O gates or trail" },
+];
+
+function OModeToggle({ value, onChange }: { value: OMode; onChange: (m: OMode) => void }) {
+  return (
+    <div className="agent-mode-pills" role="radiogroup" aria-label="O-Mode">
+      {OMODES.map((m) => (
+        <button
+          key={m.id}
+          type="button"
+          className="agent-mode-pill"
+          data-active={value === m.id}
+          title={m.title}
+          role="radio"
+          aria-checked={value === m.id}
+          onClick={() => onChange(m.id)}
+        >
+          {m.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+const HARNESS_LABELS = {
+  chatInputPlaceholder:
+    "Ask Harness to inspect files, read resources, or run read-only tools…",
+  welcomeMessageText:
+    "🔧 MAF's read-only harness loop — no PMCR-O gates, no sealed trail.",
+};
+
+// ARCH-CANVAS-001 (2026-08-22): governed-mode rail chat labels, parallel to
+// ChatPanel.tsx's own Orchestrator entry -- this rail is a second, docked
+// CopilotChat surface scoped to Console specifically (see ChatPanel.tsx's
+// pathname check for why the floating one stays hidden here).
+const ORCHESTRATOR_LABELS = {
+  chatInputPlaceholder: "Ask the Colony to inspect, build, test, or explain…",
+  welcomeMessageText:
+    "👋 The Colony is listening. Planner, Maker, Checker, and Reflector are " +
+    "seated — ask anything and watch the round table deliberate.",
+};
+
 export default function ConsoleView({
   trailsByDomain,
   skills,
@@ -194,6 +300,22 @@ export default function ConsoleView({
   trailsByDomain: Record<string, Trail[]>;
   skills: SkillSummary[];
 }) {
+  // ARCH-OMODE-MERGE-001: mode lives in the URL, not bare useState, so
+  // ChatPanel.tsx's floating sidebar (reading the same `?mode=` param) and
+  // this screen can never independently drift onto different agents.
+  // router.replace (not push) -- switching O-Mode is not a new navigation
+  // history entry, same as any other in-place UI toggle.
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const oMode: OMode = searchParams.get(OMODE_PARAM) === "readonly" ? "readonly" : "governed";
+  const setOMode = (m: OMode) => {
+    const params = new URLSearchParams(searchParams.toString());
+    if (m === "governed") params.delete(OMODE_PARAM);
+    else params.set(OMODE_PARAM, m);
+    const qs = params.toString();
+    router.replace(qs ? `/?${qs}` : "/", { scroll: false });
+  };
+
   const [prompt, setPrompt] = useState("");
   const [sending, setSending] = useState(false);
   const [submittedPrompt, setSubmittedPrompt] = useState<string | null>(null);
@@ -205,17 +327,11 @@ export default function ConsoleView({
   // directory after the domain instead of "filesystem-agent", even before any
   // domain-specific skill-loading is wired in.
   const [domain, setDomain] = useState<string | null>(null);
-  const [selectedSkillIds, setSelectedSkillIds] = useState<string[]>([]);
 
-  // ARCH-NEURAL-ACTION-001 (2026-07-20): LLM-addressable UI state.
-  // briefingPlayTrigger is bumped (never read for its value, only its
-  // identity-changing) to (re)start RoundTable's turn-by-turn playback.
-  // NOTE (ARCH-IA-SPLIT-001, 2026-07-20): selectedAgentId / the on-page
-  // C-Suite grid it used to highlight are gone -- that grid now lives only
-  // in /directory (see plan point 3: Directory is the canonical place for
-  // it, the Console copy was a redundant duplicate). selectAgent's handler
-  // below navigates there instead of scrolling a local element.
-  const [briefingPlayTrigger, setBriefingPlayTrigger] = useState(0);
+  // ARCH-CANVAS-001 (2026-08-22): selectedSkillIds and briefingPlayTrigger
+  // removed along with SkillSelector/RoundTable -- there's no on-Console UI
+  // left for either to drive. selectAgent's handler below still navigates
+  // to /directory, same as before.
 
   // ARCH-NEURAL-ACTION-002 (2026-07-20): pins the Trail player to one
   // specific sealed trail by id, independent of the domain tag. Takes
@@ -265,7 +381,9 @@ export default function ConsoleView({
   // -- the same call CopilotChat's own send button makes internally.
   const { agent } = useAgent({ agentId: "Orchestrator" });
   const { copilotkit } = useCopilotKit();
-  const router = useRouter();
+  // ARCH-OMODE-MERGE-001: router is already declared above for the O-Mode
+  // URL param -- reused here, not redeclared (was a duplicate `const router`
+  // in this scope, a TS2451 compile error caught on refresh 2026-08-22).
 
   async function handleHeroSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -275,14 +393,12 @@ export default function ConsoleView({
     setSubmittedPrompt(text);
     setRunError(null);
     try {
-      // ARCH-ROUTING-TAGS-001: domain and skill selections are explicit text
-      // tags because AG-UI's message shape has no UI side-channel for them.
-      // Program.cs parses the tags before handing the clean intent to the
-      // PMCR-O workflow and native MAF skill provider.
-      const prefixes = [
-        domain ? `[domain: ${domain}]` : "",
-        selectedSkillIds.length > 0 ? `[skills: ${selectedSkillIds.join(", ")}]` : "",
-      ].filter(Boolean);
+      // ARCH-ROUTING-TAGS-001: domain selection is an explicit text tag
+      // because AG-UI's message shape has no UI side-channel for it.
+      // Program.cs parses the tag before handing the clean intent to the
+      // PMCR-O workflow. ARCH-CANVAS-001: the skills tag is gone along with
+      // SkillSelector -- skill context now only comes from /skills.
+      const prefixes = [domain ? `[domain: ${domain}]` : ""].filter(Boolean);
       const content = [...prefixes, text].join(" ");
       agent.addMessage({
         id: crypto.randomUUID(),
@@ -330,22 +446,11 @@ export default function ConsoleView({
     },
   });
 
-  useFrontendTool({
-    name: "playBriefing",
-    description:
-      "Plays back the Colony's Round Table briefing (from " +
-      ".pmcro/SESSION-BRIEF.md) turn by turn, scrolling to it and " +
-      "highlighting each speaker in sequence. Use this when the user asks " +
-      "to hear, replay, or walk through the current session brief.",
-    handler: async () => {
-      // Bumping the trigger (rather than toggling a boolean) is what lets a
-      // second playBriefing() call restart playback from turn 0 even if one
-      // was already mid-run -- RoundTable's effect keys off this value
-      // changing, not its truthiness.
-      setBriefingPlayTrigger((n) => n + 1);
-      return "Playing the Round Table briefing.";
-    },
-  });
+  // ARCH-CANVAS-001 (2026-08-22): 'playBriefing' removed -- it drove
+  // RoundTable's turn-by-turn playback, and RoundTable no longer renders on
+  // this page (moved out with SkillSelector, see file-top note). If a
+  // Round Table playback action is wanted again later it belongs on
+  // /directory where the roster actually lives now, not here.
 
   // ARCH-NEURAL-ACTION-002 (2026-07-20): 'playTrail' is the second Action
   // Bridge tool. There is deliberately no 'focusAgent' here -- naming-
@@ -377,14 +482,40 @@ export default function ConsoleView({
     },
   });
 
+  // ARCH-CANVAS-001 (2026-08-22): rail chat is docked per O-Mode (same
+  // agentId mapping ChatPanel.tsx uses for the floating one elsewhere).
+  const railAgentId = oMode === "governed" ? "Orchestrator" : "Harness";
+  const railLabels = oMode === "governed" ? ORCHESTRATOR_LABELS : HARNESS_LABELS;
+
   return (
-    <>
-      <section id="console" className="colony-shell" aria-labelledby="workspace-title">
+    <div className="canvas-shell">
+      {/* ── Chat rail ──────────────────────────────────────────────────
+          ARCH-CANVAS-001: persistent, docked chat -- not a floating
+          overlay -- per the CopilotKit Canvas pattern (chat rail + live
+          generative-UI canvas). ChatPanel.tsx's floating sidebar hides
+          itself on "/" so there's only ever one chat surface visible here. */}
+      <aside className="canvas-rail" aria-label="Colony assistant">
+        <div className="canvas-rail-header">
+          <p className="canvas-rail-title">PMCR-O Colony</p>
+          <OModeToggle value={oMode} onChange={setOMode} />
+        </div>
+        <div className="canvas-rail-chat">
+          <CopilotChat agentId={railAgentId} labels={railLabels} />
+        </div>
+      </aside>
+
+      {/* ── Canvas ─────────────────────────────────────────────────────
+          Live agent-driven workspace: task entry, routing, and real-time
+          cycle evidence. No skill catalog or C-Suite roster here anymore
+          -- those live at /skills and /directory respectively. */}
+      <div className="canvas-pane">
         <header className="workspace-header">
           <div>
             <span className="colony-eyebrow"><span className="dot" /> PMCR-O workspace</span>
-            <p className="workspace-kicker">Governed agent execution</p>
-            <h1 id="workspace-title" className="workspace-title">Turn intent into governed work.</h1>
+            <p className="workspace-kicker">{oMode === "governed" ? "Governed agent execution" : "Read-only tool use"}</p>
+            <h1 id="workspace-title" className="workspace-title">
+              {oMode === "governed" ? "Turn intent into governed work." : "Explore without governance gates."}
+            </h1>
           </div>
           <div className="workspace-metrics" aria-label="Workspace metrics">
             <span><strong>{skills.length}</strong> skills</span>
@@ -393,123 +524,115 @@ export default function ConsoleView({
           </div>
         </header>
 
-        <div className="workspace-intro">
-          <h2>What should the Colony work on?</h2>
-          <p>Describe the outcome. The Orchestrator will plan, make, check, and reflect with human approval at governed boundaries.</p>
-        </div>
-
-        <div className="command-card">
-          <p className="command-card-label"><span className="command-dot" /> New governed run</p>
-          <form className="hero-bar" onSubmit={handleHeroSubmit}>
-            <label className="sr-only" htmlFor="colony-prompt">Task for the PMCR-O Orchestrator</label>
-            <input
-              id="colony-prompt"
-              className="hero-input"
-              type="text"
-              aria-describedby="prompt-help"
-              placeholder="Ask the Colony to inspect, build, test, or explain…"
-              value={prompt}
-              onChange={(e) => setPrompt(e.target.value)}
-            />
-            <button type="submit" className="hero-submit" disabled={sending || !prompt.trim()}>
-              {sending ? "Running…" : "Run with Orchestrator"}
-            </button>
-          </form>
-          <p id="prompt-help" className="command-card-hint">Read-only exploration is immediate. File writes and command execution remain human-approved.</p>
-        </div>
-
-        <div className="workspace-controls">
-          <DomainSelector value={domain} onChange={setDomain} />
-          <div className="agent-context-badge"><span className="status-dot" data-live="false" /> Orchestrator · PMCR-O cycle</div>
-        </div>
-
-        <section className="workspace-context" aria-labelledby="context-heading">
-          <div className="workspace-section-heading">
-            <div>
-              <p className="workspace-section-kicker">02 · Context</p>
-              <h2 id="context-heading">Choose the operating context</h2>
+        {oMode === "governed" ? (
+          <>
+            <div className="workspace-intro">
+              <h2>What should the Colony work on?</h2>
+              <p>Describe the outcome. The Orchestrator will plan, make, check, and reflect with human approval at governed boundaries.</p>
             </div>
-            <span className="workspace-section-meta">Optional</span>
-          </div>
-          <SkillSelector
-            skills={skills}
-            value={selectedSkillIds}
-            onChange={setSelectedSkillIds}
-          />
-        </section>
 
-        <section className="workspace-activity" aria-live="polite" aria-labelledby="activity-heading">
-          <div className="workspace-section-heading">
-            <div>
-              <p className="workspace-section-kicker">03 · Activity</p>
-              <h2 id="activity-heading">Latest request</h2>
+            <div className="command-card">
+              <p className="command-card-label"><span className="command-dot" /> New governed run</p>
+              <form className="hero-bar" onSubmit={handleHeroSubmit}>
+                <label className="sr-only" htmlFor="colony-prompt">Task for the PMCR-O Orchestrator</label>
+                <input
+                  id="colony-prompt"
+                  className="hero-input"
+                  type="text"
+                  aria-describedby="prompt-help"
+                  placeholder="Ask the Colony to inspect, build, test, or explain…"
+                  value={prompt}
+                  onChange={(e) => setPrompt(e.target.value)}
+                />
+                <button type="submit" className="hero-submit" disabled={sending || !prompt.trim()}>
+                  {sending ? "Running…" : "Run with Orchestrator"}
+                </button>
+              </form>
+              <p id="prompt-help" className="command-card-hint">Read-only exploration is immediate. File writes and command execution remain human-approved.</p>
             </div>
-            <span className={`activity-status ${sending ? "is-running" : submittedPrompt ? "is-ready" : "is-idle"}`}>
-              <span className="activity-status-dot" />
-              {sending ? "Running" : submittedPrompt ? "Submitted" : "Waiting"}
-            </span>
-          </div>
-          {submittedPrompt ? (
-            <div className="activity-request">
-              <span className="activity-request-mark">↗</span>
-              <div>
-                <p>{submittedPrompt}</p>
-                <small>{domain ? `Routed to ${DOMAINS.find((item) => item.id === domain)?.label ?? domain}` : "Default filesystem-agent routing"} · {selectedSkillIds.length} selected skills</small>
+
+            <div className="workspace-controls">
+              <DomainSelector value={domain} onChange={setDomain} />
+              <div className="agent-context-badge"><span className="status-dot" data-live="false" /> Orchestrator · PMCR-O cycle</div>
+            </div>
+
+            <section className="workspace-activity" aria-live="polite" aria-labelledby="activity-heading">
+              <div className="workspace-section-heading">
+                <div>
+                  <p className="workspace-section-kicker">02 · Activity</p>
+                  <h2 id="activity-heading">Latest request</h2>
+                </div>
+                <span className={`activity-status ${sending ? "is-running" : submittedPrompt ? "is-ready" : "is-idle"}`}>
+                  <span className="activity-status-dot" />
+                  {sending ? "Running" : submittedPrompt ? "Submitted" : "Waiting"}
+                </span>
               </div>
-            </div>
-          ) : (
-            <div className="activity-empty"><span>✦</span><p>Your submitted task and live agent status will appear here.</p></div>
-          )}
-          {runError && <p className="activity-error" role="alert">{runError}</p>}
-        </section>
+              {submittedPrompt ? (
+                <div className="activity-request">
+                  <span className="activity-request-mark">↗</span>
+                  <div>
+                    <p>{submittedPrompt}</p>
+                    <small>{domain ? `Routed to ${DOMAINS.find((item) => item.id === domain)?.label ?? domain}` : "Default filesystem-agent routing"}</small>
+                  </div>
+                </div>
+              ) : (
+                <div className="activity-empty"><span>✦</span><p>Your submitted task and live agent status will appear here.</p></div>
+              )}
+              {runError && <p className="activity-error" role="alert">{runError}</p>}
+            </section>
 
-        <section className="workspace-evidence" aria-labelledby="evidence-heading">
-          <div className="workspace-section-heading">
-            <div>
-              <p className="workspace-section-kicker">04 · Evidence</p>
-              <h2 id="evidence-heading">Live cycle evidence</h2>
-            </div>
-            <span className="workspace-section-meta">PMCR-O</span>
-          </div>
-          {/* ARCH-ROUND-TABLE-001: live Round Table rendered from
-              .pmcro/SESSION-BRIEF.md and real trail data. */}
-          <RoundTable playTrigger={briefingPlayTrigger} />
-          <PhaseRail />
-        </section>
-      </section>
+            <section className="workspace-evidence" aria-labelledby="evidence-heading">
+              <div className="workspace-section-heading">
+                <div>
+                  <p className="workspace-section-kicker">03 · Evidence</p>
+                  <h2 id="evidence-heading">Live cycle evidence</h2>
+                </div>
+                <span className="workspace-section-meta">PMCR-O</span>
+              </div>
+              <PhaseRail />
+            </section>
 
-      {/* ARCH-CONSOLE-TRAILPLAYER-001 (2026-07-20): now wired to real
-          trail data via lib/trails.ts's loadTrailsByDomain(), read
-          server-side in page.tsx and passed down as trailsByDomain --
-          replaces the old hardcoded `trail={null}` placeholder. Shows the
-          most recent trail for the tagged domain, or the most recent
-          trail overall when untagged. Full history for every domain is
-          still one click away in the Directory.
-          ARCH-IA-SPLIT-001 (2026-07-20): this now sits directly beneath
-          Console instead of at the bottom of a five-section scroll -- the
-          static Subject agents / C-Suite / Harness / Skills sections that
-          used to separate it from the hero moved out to /platform and
-          /directory. */}
-      <section id="trails" className="colony-section">
-        <h2 className="colony-section-title">Trail player</h2>
-        {!latestTrail && (
-          <p className="colony-hint" style={{ marginTop: 0, marginBottom: 16 }}>
-            No sealed or in-progress trails on disk yet — this fills in as soon as a cycle runs.
-          </p>
+            {/* ARCH-CONSOLE-TRAILPLAYER-001: real trail data via
+                lib/trails.ts's loadTrailsByDomain(). Shows the most recent
+                trail for the tagged domain, or the most recent trail
+                overall when untagged. Full history for every domain is
+                still one click away in the Directory. */}
+            <section id="trails" className="colony-section" style={{ margin: "40px 0 0", padding: 0, maxWidth: "none" }}>
+              <h2 className="colony-section-title">Trail player</h2>
+              {!latestTrail && (
+                <p className="colony-hint" style={{ marginTop: 0, marginBottom: 16 }}>
+                  No sealed or in-progress trails on disk yet — this fills in as soon as a cycle runs.
+                </p>
+              )}
+              <TrailView trail={latestTrail} />
+            </section>
+          </>
+        ) : (
+          <>
+            {/* ARCH-OMODE-MERGE-001: Read-Only O-Mode body. No domain tag
+                (Program.cs's routing parser is PMCR-O-specific), no
+                PhaseRail/Activity (Harness publishes no
+                PmcroCycleStateSnapshot), no trail player (Harness seals
+                nothing) -- this mode has nothing in common with Governed
+                except the outer shell and the rail chat above, now pointed
+                at the Harness agent instead of the Orchestrator. */}
+            <div className="workspace-intro">
+              <h2>Read-only tool use, no governance gates.</h2>
+              <p>MAF&apos;s batteries-included harness loop — multi-turn tool use, todo planning, progressive skill loading. Nothing here mutates the repo or seals a trail.</p>
+            </div>
+            <div className="product-grid" style={{ marginTop: 16 }}>
+              <article className="product-card"><span className="workspace-section-kicker">01</span><h2>Read-only tools</h2><p>Filesystem and terminal inspection without PMCR-O mutation gates.</p></article>
+              <article className="product-card"><span className="workspace-section-kicker">02</span><h2>Progressive skills</h2><p>Advertise, load, read resources, and request scripts only when needed.</p></article>
+              <article className="product-card"><span className="workspace-section-kicker">03</span><h2>Bounded turns</h2><p>Completion marker and iteration cap prevent runaway harness loops.</p></article>
+            </div>
+          </>
         )}
-        <TrailView trail={latestTrail} />
-      </section>
 
-      <p className="colony-hint" style={{ maxWidth: 960, margin: "56px auto 0", padding: "0 24px" }}>
-        Open the assistant in the corner to give the Orchestrator a task —
-        e.g. &ldquo;list the files in src/services&rdquo; or &ldquo;check the
-        status of the terminal agent&rdquo;.
-      </p>
-
-      {/* ARCH-VISUAL-BRIDGE-002 (2026-07-20): mounts the A2UI renderer so the LLM
-          can call render_a2ui with TrailCard or AgentDomainCard and see real
-          components in the CopilotKit chat surface. */}
-      <A2UIRenderer />
-    </>
+        {/* ARCH-VISUAL-BRIDGE-002 (2026-07-20): mounts the A2UI renderer so
+            the LLM can call render_a2ui with TrailCard or AgentDomainCard
+            and see real components rendered on the canvas. */}
+        <A2UIRenderer />
+      </div>
+    </div>
   );
 }

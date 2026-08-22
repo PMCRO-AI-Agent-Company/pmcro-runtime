@@ -40,19 +40,39 @@
 // the sidebar's collapse state) -- deliberately, so Harness stays opt-in per
 // AppHost.cs's "not auto-used by the harness" framing rather than becoming
 // a sticky default someone forgets they switched on.
+//
+// ARCH-OMODE-MERGE-001 (2026-08-22): agentId is now DERIVED from the same
+// `?mode=` URL param ConsoleView.tsx's OModeToggle owns, not independent
+// local state keyed off pathname === "/harness" -- that pathname check is
+// dead now that /harness no longer renders a chat surface of its own (see
+// app/harness/page.tsx, now a redirect to "/?mode=readonly"). Picking a
+// mode on the Console screen and picking one here are the same action on
+// the same piece of state; AgentModeToggle below still exists as a second
+// place to flip it (useful when the sidebar is open and Console is
+// scrolled out of view), and pushes through the same setter so both
+// controls can never disagree about which agent is live.
 "use client";
 
-import { useState } from "react";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { CopilotSidebar, CopilotModalHeader } from "@copilotkit/react-core/v2";
+import { OMODE_PARAM, type OMode } from "./ConsoleView";
 
 const HIDDEN_INPUT_SLOT = { style: { display: "none" } };
 
 type ChatAgentId = "Orchestrator" | "Harness";
 
-const AGENT_MODES: { id: ChatAgentId; label: string; title: string }[] = [
-  { id: "Orchestrator", label: "PMCR-O", title: "PMCR-O split-turn cycle (Planner \u2192 Maker \u2192 Checker \u2192 Reflector), HIL-gated" },
-  { id: "Harness", label: "Harness", title: "MAF harness loop \u2014 multi-turn tool use, read-only, no PMCR-O gating" },
+// ARCH-OMODE-MERGE-001: single mapping point from the shared OMode value to
+// this surface's backend agentId -- everything below keys off OMode, this
+// is the only place "governed"/"readonly" ever turns into "Orchestrator"/
+// "Harness".
+const OMODE_TO_AGENT: Record<OMode, ChatAgentId> = {
+  governed: "Orchestrator",
+  readonly: "Harness",
+};
+
+const AGENT_MODES: { id: OMode; label: string; title: string }[] = [
+  { id: "governed", label: "PMCR-O", title: "PMCR-O split-turn cycle (Planner \u2192 Maker \u2192 Checker \u2192 Reflector), HIL-gated" },
+  { id: "readonly", label: "Harness", title: "MAF harness loop \u2014 multi-turn tool use, read-only, no PMCR-O gating" },
 ];
 
 const AGENT_LABELS: Record<ChatAgentId, { modalHeaderTitle: string; welcomeMessageText: string }> = {
@@ -71,7 +91,7 @@ const AGENT_LABELS: Record<ChatAgentId, { modalHeaderTitle: string; welcomeMessa
   },
 };
 
-function AgentModeToggle({ value, onChange }: { value: ChatAgentId; onChange: (id: ChatAgentId) => void }) {
+function AgentModeToggle({ value, onChange }: { value: OMode; onChange: (id: OMode) => void }) {
   return (
     <div className="agent-mode-pills" role="radiogroup" aria-label="Chat agent">
       {AGENT_MODES.map((m) => (
@@ -93,9 +113,37 @@ function AgentModeToggle({ value, onChange }: { value: ChatAgentId; onChange: (i
 }
 
 export default function ChatPanel() {
+  // ARCH-CANVAS-001 (2026-08-22): Console (/) now docks its own CopilotChat
+  // in the canvas rail (see ConsoleView.tsx), replacing the floating
+  // overlay this component renders everywhere else. Two live chat surfaces
+  // on the same route would just be a second, redundant assistant, so this
+  // one no-ops there and stays floating on every other route (/skills,
+  // /directory, /platform, /trails).
   const pathname = usePathname();
-  const [agentId, setAgentId] = useState<ChatAgentId>(pathname === "/harness" ? "Harness" : "Orchestrator");
+
+  // ARCH-OMODE-MERGE-001: reads the exact same `?mode=` param/default logic
+  // as ConsoleView.tsx's OModeToggle (duplicated by hand here rather than
+  // imported, since that logic is only a couple lines and importing a hook
+  // body isn't idiomatic -- the exported OMODE_PARAM constant and OMode type
+  // are the actual shared contract; keep this in sync with ConsoleView.tsx
+  // if that default-branch logic ever changes).
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const oMode: OMode = searchParams.get(OMODE_PARAM) === "readonly" ? "readonly" : "governed";
+  const setOMode = (m: OMode) => {
+    const params = new URLSearchParams(searchParams.toString());
+    if (m === "governed") params.delete(OMODE_PARAM);
+    else params.set(OMODE_PARAM, m);
+    const qs = params.toString();
+    router.replace(qs ? `/?${qs}` : "/", { scroll: false });
+  };
+
+  const agentId = OMODE_TO_AGENT[oMode];
   const labels = AGENT_LABELS[agentId];
+
+  // ARCH-CANVAS-001: bail out after all hooks have run (rules-of-hooks --
+  // never conditionally skip a hook call above this line).
+  if (pathname === "/") return null;
 
   return (
     <CopilotSidebar
@@ -119,7 +167,7 @@ export default function ChatPanel() {
               {drawerLauncher}
               {closeButton}
             </div>
-            <AgentModeToggle value={agentId} onChange={setAgentId} />
+            <AgentModeToggle value={oMode} onChange={setOMode} />
           </div>
         ),
       }}

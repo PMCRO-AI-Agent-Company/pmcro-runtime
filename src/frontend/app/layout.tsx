@@ -1,5 +1,6 @@
 // src/frontend/app/layout.tsx
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { Space_Grotesk, IBM_Plex_Sans, IBM_Plex_Mono } from "next/font/google";
 import "@copilotkit/react-core/v2/styles.css";
 import { CopilotKit } from "@copilotkit/react-core";
@@ -57,7 +58,19 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <Sidebar />
             <main className="app-main">{children}</main>
           </div>
-          <ChatPanel />
+          {/* ARCH-OMODE-MERGE-001 (2026-08-22): ChatPanel now reads the
+              shared `?mode=` param via useSearchParams(), which Next.js
+              requires be wrapped in a Suspense boundary for any route that
+              isn't already force-dynamic (e.g. /platform has no `dynamic =
+              "force-dynamic"` export and would otherwise fail the
+              missing-suspense-with-csr-bailout check at build). Root layout
+              is shared by every route, so this boundary here covers all of
+              them at once rather than needing one per page. Fallback is
+              null -- the sidebar defaults closed (defaultOpen={false}), so
+              there's nothing visible to flash in before hydration. */}
+          <Suspense fallback={null}>
+            <ChatPanel />
+          </Suspense>
         </CopilotKit>
       </body>
     </html>

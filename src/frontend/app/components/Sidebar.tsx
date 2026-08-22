@@ -127,9 +127,12 @@ type NavGroup = { label: string; items: readonly NavItem[] };
 const NAV_GROUPS: readonly NavGroup[] = [
   {
     label: "Create",
+    // ARCH-OMODE-MERGE-001 (2026-08-22): Harness's own nav entry/route
+    // (/harness) is retired -- it's now the "Read-Only" O-Mode selected
+    // via the pill toggle on this same Console screen (?mode=readonly),
+    // not a second page. See ConsoleView.tsx's OModeToggle.
     items: [
       { href: "/", label: "Console", icon: IconConsole },
-      { href: "/harness", label: "Harness", icon: IconHarness },
     ],
   },
   {
