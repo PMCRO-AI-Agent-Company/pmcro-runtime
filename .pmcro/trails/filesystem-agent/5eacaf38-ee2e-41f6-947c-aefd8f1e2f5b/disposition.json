@@ -1,0 +1,11 @@
+{
+  "TrailId": "5eacaf38-ee2e-41f6-947c-aefd8f1e2f5b",
+  "SeedIntent": "Create a simple plan for making a dollar online.",
+  "Disposition": "Halt",
+  "FinalOutput": "",
+  "RetryContext": null,
+  "HaltReason": "Gate failure: success_criteria not covered by any CheckItem: \u0027Identify files or directories in the project root ...\u0027",
+  "EarnedConstraints": [],
+  "CycleNumber": 2,
+  "NextSeedIntent": null
+}

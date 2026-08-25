@@ -10,10 +10,10 @@
     <!-- Aspire.Hosting.AppHost intentionally NOT listed here: Aspire.AppHost.Sdk
          implicitly adds this PackageReference, and CPM forbids centrally versioning
          implicit references (NU1009 fires otherwise). -->
-    <PackageVersion Include="Aspire.Hosting" Version="13.5.1" />
-    <PackageVersion Include="Aspire.Hosting.PostgreSQL" Version="13.5.1" />
-    <PackageVersion Include="Aspire.StackExchange.Redis" Version="13.5.1" />
-    <PackageVersion Include="Aspire.Hosting.PostgreSQL.EntityFrameworkCore" Version="13.5.1" />
+    <PackageVersion Include="Aspire.Hosting" Version="13.5.2" />
+    <PackageVersion Include="Aspire.Hosting.PostgreSQL" Version="13.5.2" />
+    <PackageVersion Include="Aspire.StackExchange.Redis" Version="13.5.2" />
+    <PackageVersion Include="Aspire.Hosting.PostgreSQL.EntityFrameworkCore" Version="13.5.2" />
     <!-- ── Synced from B:\pmcro-cline\Directory.Packages.props (2026-07-15) ──
          W: was rebuilding these from scratch; B: already resolved every one
          of them against live NuGet, including the interdependent MAF preview
