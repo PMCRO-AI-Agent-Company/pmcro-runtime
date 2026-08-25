@@ -25,8 +25,9 @@ const modes: { id: OMode; label: string }[] = [
 ];
 
 const labels = {
-  inputPlaceholder: "Message PMCRO…",
-  initial: "I am the Orchestrator. Give me a goal and I will select the O-Mode, validate available capabilities, and coordinate the minimum necessary cycle.",
+  chatInputPlaceholder: "Message PMCRO…",
+  welcomeMessageText:
+    "I am the Orchestrator. Give me a goal and I will select the O-Mode, validate available capabilities, and coordinate the minimum necessary cycle.",
 };
 
 function phaseState(current: Phase, target: Phase) {
