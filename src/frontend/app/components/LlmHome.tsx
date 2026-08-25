@@ -16,19 +16,17 @@ type CycleState = {
   allPassed?: boolean | null;
 };
 
-type OMode = "optimize" | "execute" | "verify" | "explore";
-const modes: { id: OMode; label: string }[] = [
-  { id: "optimize", label: "Optimize" },
-  { id: "execute", label: "Execute" },
-  { id: "verify", label: "Verify" },
-  { id: "explore", label: "Explore" },
+type OMode = "auto" | "cot" | "react" | "tot" | "got" | "plan" | "verify" | "explore";
+const modes: { id: OMode; label: string; description: string }[] = [
+  { id: "auto", label: "Auto", description: "Let the Orchestrator choose the strategy" },
+  { id: "cot", label: "Chain-of-Thought", description: "Structured reasoning mode" },
+  { id: "react", label: "ReAct", description: "Reason and act through tools" },
+  { id: "tot", label: "Tree-of-Thought", description: "Explore competing paths" },
+  { id: "got", label: "Graph-of-Thought", description: "Connect and evaluate ideas" },
+  { id: "plan", label: "Plan & Execute", description: "Plan first, then execute" },
+  { id: "verify", label: "Verify", description: "Prioritize evidence and checks" },
+  { id: "explore", label: "Explore", description: "Broaden the solution space" },
 ];
-
-const labels = {
-  chatInputPlaceholder: "Message PMCRO…",
-  welcomeMessageText:
-    "I am the Orchestrator. Give me a goal and I will select the O-Mode, validate available capabilities, and coordinate the minimum necessary cycle.",
-};
 
 function phaseState(current: Phase, target: Phase) {
   const order: Phase[] = ["Planning", "Checking", "Reflecting", "Sealed"];
@@ -43,11 +41,12 @@ function phaseState(current: Phase, target: Phase) {
 export default function LlmHome({ trailsByDomain }: { trailsByDomain: Record<string, Trail[]> }) {
   const { agent } = useAgent({ agentId: "Orchestrator" });
   const state = agent.state as CycleState | undefined;
-  const [mode, setMode] = useState<OMode>("optimize");
+  const [mode, setMode] = useState<OMode>("auto");
   const [showDetails, setShowDetails] = useState(false);
   const lastPhase = useRef<Phase | undefined>(undefined);
   const router = useRouter();
   const searchParams = useSearchParams();
+  const selectedMode = modes.find((item) => item.id === mode) ?? modes[0];
 
   useEffect(() => {
     const value = searchParams.get("mode");
@@ -61,6 +60,10 @@ export default function LlmHome({ trailsByDomain }: { trailsByDomain: Record<str
 
   const recentTrails = useMemo(() => Object.values(trailsByDomain).flat().slice(0, 3), [trailsByDomain]);
   const active = !!state?.phase && state.phase !== "Sealed" && state.phase !== "Error";
+  const labels = useMemo(() => ({
+    chatInputPlaceholder: `Message PMCRO · ${selectedMode.label}…`,
+    welcomeMessageText: `I am the Orchestrator. O-Mode: ${selectedMode.label}. ${selectedMode.description}. Give me a goal and I will coordinate the governed cycle.`,
+  }), [selectedMode]);
 
   function changeMode(next: OMode) {
     setMode(next);
@@ -91,11 +94,20 @@ export default function LlmHome({ trailsByDomain }: { trailsByDomain: Record<str
           <div className={styles.chatHeader}>
             <div>
               <strong>Orchestrator</strong>
-              <span>I AM: Orchestrator</span>
+              <span>I AM: Orchestrator · O-Mode: {selectedMode.label}</span>
             </div>
             <div className={styles.modeGroup} aria-label="O-Mode">
               {modes.map((item) => (
-                <button key={item.id} className={mode === item.id ? styles.modeActive : styles.mode} onClick={() => changeMode(item.id)}>{item.label}</button>
+                <button
+                  key={item.id}
+                  type="button"
+                  title={item.description}
+                  aria-pressed={mode === item.id}
+                  className={mode === item.id ? styles.modeActive : styles.mode}
+                  onClick={() => changeMode(item.id)}
+                >
+                  {item.label}
+                </button>
               ))}
             </div>
           </div>
@@ -127,7 +139,7 @@ export default function LlmHome({ trailsByDomain }: { trailsByDomain: Record<str
 
           {showDetails && (
             <div className={styles.detailsPanel}>
-              <div><span>O-Mode</span><strong>{mode}</strong></div>
+              <div><span>O-Mode</span><strong>{selectedMode.label}</strong></div>
               <div><span>Trail</span><strong>{state?.trailId ?? "Not started"}</strong></div>
               <div><span>Last action</span><strong>{state?.lastAction ?? "Waiting for intent"}</strong></div>
               <div><span>Disposition</span><strong>{state?.disposition ?? "—"}</strong></div>
