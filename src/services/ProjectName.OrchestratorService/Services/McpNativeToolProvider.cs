@@ -12,7 +12,7 @@ namespace ProjectName.OrchestratorService.Services;
 public sealed class McpNativeToolProvider(IHttpClientFactory httpClientFactory, ILogger<McpNativeToolProvider> logger)
 {
     private readonly ConcurrentDictionary<string, IReadOnlyList<AITool>> _tools = new(StringComparer.OrdinalIgnoreCase);
-    private readonly ConcurrentDictionary<string, IMcpClient> _clients = new(StringComparer.OrdinalIgnoreCase);
+    private readonly ConcurrentDictionary<string, McpClient> _clients = new(StringComparer.OrdinalIgnoreCase);
 
     public IReadOnlyList<AITool> GetMakerTools(string subjectAgent)
     {
@@ -40,7 +40,7 @@ public sealed class McpNativeToolProvider(IHttpClientFactory httpClientFactory, 
     public IReadOnlyList<(string Name, string Description)> GetCatalog(string subjectAgent) =>
         GetMakerTools(subjectAgent).Select(t => (t.Name, t.Description)).ToArray();
 
-    private IMcpClient GetOrCreateClient(string serverName)
+    private McpClient GetOrCreateClient(string serverName)
     {
         if (_clients.TryGetValue(serverName, out var existing))
             return existing;
