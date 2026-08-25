@@ -1,124 +1,104 @@
 // Tools/PmcroCycleSkill.cs
-// Replaces FilesystemAgentSkill as the tool surface exposed to the Orchestrator
-// agent. Instead of exposing individual fs_* actions (fs_write_file, fs_promote,
-// fs_delete, fs_zip, fs_read_file, fs_list_directory, source_dump) as separately
-// callable tools, this skill exposes exactly one tool: run_pmcro_cycle.
+// Canonical PMCR-O cycle entry point. Execution is owned by Microsoft Agent
+// Framework's declarative workflow runtime; this skill is only the governed
+// invocation surface exposed to the Orchestrator agent.
 //
-// Calling run_pmcro_cycle triggers a full Plan -> Make -> Check -> Reflect cycle
-// via PmcroLoop.RunAsync, which internally drives its own LLM calls per phase
-// and (via McpToolCache) makes real MCP tool calls against mcp-filesystem during
-// the Make phase. The Orchestrator agent's single turn therefore nests an entire
-// cognitive loop inside one tool call, rather than dispatching flat fs_* actions
-// directly.
-//
-// Trail logging: PmcroLoop.RunAsync writes a sealed trail frame (GUID folder,
-// phase JSONL, disposition.json) via ITrailWriter for every invocation — see
-// Loop/TrailWriter.cs. This is what makes a cycle's outcome auditable rather
-// than self-reported.
-//
-// Decision recorded 2026-06-20: fs_* tools are intentionally no longer reachable
-// directly from Orchestrator. Only PmcroLoop's internal MakeAsync (via
-// McpToolCache) can write/read files now.
+// The previous implementation called PmcroLoop.RunAsync directly. That created
+// a competing hand-rolled execution engine beside MAF's declarative workflow
+// engine and was the source of an architectural split: the live MCP operation
+// could succeed while evidence coverage was generated against a different
+// execution representation. The declarative workflow now owns phase routing,
+// MCP execution, evidence capture, HIL, and cycle execution. PmcroLoop remains
+// available as a migration/reference implementation until the live regression
+// suite proves the declarative path equivalent.
 
 using System.ComponentModel;
 using Microsoft.Agents.AI;
 using Microsoft.Extensions.Logging;
-using ProjectName.OrchestratorService.Loop;
 using ProjectName.OrchestratorService.Services;
+using ProjectName.OrchestratorService.Workflows.Declarative;
 
 namespace ProjectName.OrchestratorService.Tools;
 
 public sealed class PmcroCycleSkill(
-    PmcroLoop                       loop,
-    ISubjectAgentRegistry           registry,
-    ILogger<PmcroCycleSkill>        logger) : AgentClassSkill<PmcroCycleSkill>
+    DeclarativeCycleRunner declarativeRunner,
+    ISubjectAgentRegistry registry,
+    ILogger<PmcroCycleSkill> logger) : AgentClassSkill<PmcroCycleSkill>
 {
-    // ARCH-CHIEF-CODEACT-001 (2026-07-22): the 10 C-Suite/Staff/Domain tags
-    // DomainSelector.tsx can send (mirrors DOMAINS in that file exactly).
-    // None of these resolve to a live AIAgent in SubjectAgentRegistry today,
-    // so an unresolvable chief tag falls back to codeact-agent instead of
-    // filesystem-agent below -- sandboxed compute (read-only tools +
-    // execute_code) rather than raw file ops, while HIL-gated writes still
-    // go through the existing WriteFile TYPE1_PENDING path. subjectAgentName
-    // (passed through to PmcroLoop.RunAsync unchanged) still carries the
-    // original tag, so trail attribution (.pmcro/trails/<domain>/) is
-    // unaffected by this fallback change.
     private static readonly HashSet<string> ChiefDomains = new(StringComparer.OrdinalIgnoreCase)
     {
         "ceo", "chief-of-staff", "cto", "coo", "cfo", "cro", "cmo", "clo", "chro", "domain-specialist",
     };
 
     public override AgentSkillFrontmatter Frontmatter { get; } = new(
-        name:        "pmcro-cycle",
-        description: "Runs a full PMCR-O cognitive cycle (Plan -> Make -> Check -> Reflect) for a given " +
-                     "intent. Use this whenever the user's request requires taking real action " +
-                     "(creating, modifying, or inspecting files) rather than just answering a question. " +
-                     "The cycle plans the steps, executes them via real filesystem tools, independently " +
-                     "verifies the result, and issues a final disposition (ACCEPT/RETRY/HALT). " +
-                     "This is the only way to take real action — there is no direct file-write tool.");
+        name: "pmcro-cycle",
+        description: "Runs one governed PMCR-O cycle through the canonical Microsoft Agent Framework declarative workflow. " +
+                     "The workflow owns Plan -> Make -> Check -> Reflect execution, MCP evidence, HIL, trail sealing, " +
+                     "and disposition. This is the only governed action entry point exposed to the Orchestrator agent.");
 
     protected override string Instructions => """
-        You are the PMCR-O Orchestrator. To take any real action (file creation,
-        modification, reading, or inspection), call run_pmcro_cycle with a clear,
-        complete seed_intent describing exactly what should happen. Do not attempt
-        to describe file contents yourself — the cycle's own Maker phase will
-        determine and execute the concrete steps.
+        You are the PMCR-O Orchestrator. To take governed real action, call
+        run_pmcro_cycle with a clear, complete seed_intent describing exactly what
+        should happen. Do not implement the plan yourself and do not call MCP
+        actuators directly.
 
-        PATH VERBATIM RULE (BUG-FIX-PATH-002, 2026-07-22): if the user's message
-        contains a filesystem path, copy it into seed_intent character-for-character
-        — every backslash, every dot, every segment — exactly as the user wrote it.
-        Do NOT retype, reformat, "clean up", or paraphrase a path from memory; treat
-        it as an opaque token, not prose. A single dropped or added character (e.g.
-        losing the backslash before ".pmcro", or duplicating a folder name) produces
-        a path to a file that does not exist, which fails the whole cycle for a
-        reason that has nothing to do with the actual request. If you are not fully
-        confident you copied a path exactly, quote it back in seed_intent inside
-        backticks so downstream stages can see it was taken verbatim, e.g.
-        `W:\PMCR-O\.pmcro\trails\...\disposition.json`.
+        The cycle is executed by the Microsoft Agent Framework declarative workflow.
+        The workflow is authoritative for phase routing, MCP invocation, evidence
+        capture, Checker coverage, HIL, Reflector disposition, and trail sealing.
+        Do not bypass it with direct filesystem, terminal, browser, or custom loop
+        calls.
 
-        After calling run_pmcro_cycle, report the cycle's disposition and final
-        output to the user honestly. If disposition is RETRY or HALT, say so
-        plainly — do not present a non-ACCEPT cycle as having succeeded.
+        PATH VERBATIM RULE: if the user's message contains a filesystem path, copy
+        it into seed_intent character-for-character. Treat paths as opaque tokens.
+
+        After calling run_pmcro_cycle, report the returned disposition and final
+        output honestly. RETRY and HALT are not success.
         """;
 
     [AgentSkillScript("run_pmcro_cycle")]
     [Description(
-        "Runs one full Plan->Make->Check->Reflect cycle for the given intent. " +
-        "Returns trail_id, disposition (ACCEPT/RETRY/HALT), final_output, and " +
-        "halt_reason/retry_context if applicable. This is the only way to take " +
-        "real filesystem action — there is no separate direct write tool.")]
+        "Runs one governed Plan->Make->Check->Reflect cycle using the canonical " +
+        "Microsoft Agent Framework declarative workflow. Returns trail_id, " +
+        "disposition (ACCEPT/RETRY/HALT), final_output, and retry/halt context.")]
     public async Task<string> RunPmcroCycleAsync(
-        [Description("Clear, complete description of what should happen — e.g. 'Create a file named test.txt in staging containing the text Hello World.'")] string seedIntent,
-        [Description("Project name this cycle belongs to, e.g. 'pmcro-agent-system'.")] string project,
-        [Description("Subject agent that should execute the steps, e.g. 'filesystem-agent'.")] string subjectAgent = "filesystem-agent",
-        [Description("Optional caller-supplied trail id for correlating this cycle's trail folder (S:\\.pmcro\\trails\\<trail_id>) with an external test or tracking id. If omitted, a new GUID is generated.")] string? trailId = null)
+        [Description("Clear, complete description of what should happen.")] string seedIntent,
+        [Description("Project name this cycle belongs to.")] string project,
+        [Description("Subject agent that should execute the atomic action, e.g. filesystem-agent.")] string subjectAgent = "filesystem-agent",
+        [Description("Optional caller-supplied trail id for correlation. If omitted, the declarative runner creates one.")] string? trailId = null)
     {
         trailId ??= Guid.NewGuid().ToString();
 
         logger.LogInformation(
-            "[Cycle] run_pmcro_cycle invoked — trail={Trail} intent=\"{Intent}\"",
+            "[Cycle] run_pmcro_cycle -> MAF declarative workflow — trail={Trail} intent=\"{Intent}\"",
             trailId, seedIntent);
 
-        var subjectAgentInstance = registry.Resolve(subjectAgent)
-            ?? (ChiefDomains.Contains(subjectAgent) ? registry.Resolve("codeact-agent") : null)
-            ?? registry.Resolve("filesystem-agent")
-            ?? throw new InvalidOperationException(
-                $"No AIAgent registered for subjectAgent='{subjectAgent}'. Register it in Program.cs.");
+        // Validate routing before entering the workflow so an invalid subject name
+        // fails deterministically instead of being silently substituted after planning.
+        var resolved = registry.Resolve(subjectAgent);
+        if (resolved is null && !ChiefDomains.Contains(subjectAgent))
+            throw new InvalidOperationException(
+                $"No AIAgent registered for subjectAgent='{subjectAgent}'. Register it before dispatching a cycle.");
 
-        var result = await loop.RunAsync(seedIntent, trailId, project, subjectAgent, subjectAgentInstance);
+        // The current declarative runner owns the authoritative execution graph.
+        // It creates the sealed trail itself; the caller-supplied trail id is used
+        // for correlation at this skill boundary and remains part of the returned
+        // contract. The workflow's own trail id is returned as the authoritative id.
+        var result = await declarativeRunner.RunAsync(seedIntent, subjectAgent, project);
 
         logger.LogInformation(
-            "[Cycle] trail={Trail} disposition={Disp}",
+            "[Cycle] MAF declarative workflow completed — requestedTrail={RequestedTrail} disposition={Disp}",
             trailId, result.Disposition);
 
         return System.Text.Json.JsonSerializer.Serialize(new
         {
-            trail_id      = trailId,
-            disposition   = result.Disposition.ToString().ToUpperInvariant(),
-            final_output  = result.FinalOutput,
+            trail_id = result.TrailId ?? trailId,
+            requested_trail_id = trailId,
+            disposition = result.Disposition.ToString().ToUpperInvariant(),
+            final_output = result.FinalOutput,
             retry_context = result.RetryContext,
-            halt_reason   = result.HaltReason,
-            cycle_number  = result.CycleNumber
+            halt_reason = result.HaltReason,
+            cycle_number = result.CycleNumber,
+            execution_engine = "Microsoft.Agents.AI.Workflows.Declarative"
         });
     }
 }
