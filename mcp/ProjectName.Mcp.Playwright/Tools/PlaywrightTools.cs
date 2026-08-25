@@ -35,7 +35,7 @@ public sealed class PlaywrightTools(
         ["NavigateTo", "ClickElement", "FillInput", "SubmitForm", "TakeScreenshot"];
 
     private static readonly string[] Type2Tools =
-        ["GetSessionStatus", "GetPageContent", "GetPageSnapshot", "GetPageTitle"];
+        ["GetSessionStatus", "GetPageContent", "GetPageSnapshot", "GetPageTitle", "GetLastDownload"];
 
     private static string Result(bool success, object? data = null, string? error = null) =>
         JsonSerializer.Serialize(new { success, data, error }, JsonOptions);
@@ -178,6 +178,41 @@ public sealed class PlaywrightTools(
                 Encoding.UTF8.GetByteCount(yaml), page.Url);
 
             return Result(true, new { url = page.Url, snapshot = yaml });
+        }
+        catch (Exception ex) { return Result(false, error: ex.Message); }
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // TYPE 2 — GetLastDownload (EC-PW-002 fix)
+    // Read-only observer over PlaywrightSessionManager's Download-event capture.
+    // No HIL needed: this reports on a download the browser already triggered
+    // (as a side effect of a prior TYPE1 click/etc), it doesn't cause anything.
+    // success:true with data:null means no download has occurred this session —
+    // that is a legitimate, distinct outcome from a capture failure (data.error
+    // set) or a real captured file (data.saved_path set). Callers must check
+    // which case they got rather than assume any non-error result means a file
+    // exists on disk.
+    // ─────────────────────────────────────────────────────────────────────────
+
+    [McpServerTool(Name = "GetLastDownload")]
+    [Description("Returns the most recent browser-triggered download captured this session (filename, saved path, byte size, source URL), or null if none has occurred. Read-only — does not mutate browser state. Use this to verify whether a click that might trigger a download (e.g. a 'Generate PDF' button) actually produced a file, since such clicks return success from ExecuteClickElement regardless of whether a download followed.")]
+    public string GetLastDownload()
+    {
+        try
+        {
+            var last = session.GetLastDownload();
+            if (last is null)
+                return Result(true, data: null);
+
+            return Result(true, new
+            {
+                suggested_filename = last.SuggestedFilename,
+                saved_path         = last.SavedPath,
+                bytes              = last.Bytes,
+                url                = last.Url,
+                captured_at_utc    = last.CapturedAtUtc,
+                error              = last.Error
+            });
         }
         catch (Exception ex) { return Result(false, error: ex.Message); }
     }

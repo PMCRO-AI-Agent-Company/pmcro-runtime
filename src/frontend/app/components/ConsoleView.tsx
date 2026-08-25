@@ -540,7 +540,7 @@ export default function ConsoleView({
                   className="hero-input"
                   type="text"
                   aria-describedby="prompt-help"
-                  placeholder="Ask the Colony to inspect, build, test, or explain…"
+                  placeholder="Describe the outcome you want the Orchestrator to run…"
                   value={prompt}
                   onChange={(e) => setPrompt(e.target.value)}
                 />

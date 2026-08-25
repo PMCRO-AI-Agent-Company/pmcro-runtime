@@ -31,8 +31,8 @@ public sealed class TerminalResources(TerminalConfig config)
     private static readonly JsonSerializerOptions _json = new() { WriteIndented = true };
 
     private static readonly string[] Slots = ["terminal-1", "terminal-2", "terminal-3", "terminal-4"];
-    private static readonly string[] Type1Tools = ["RunCommand", "RunScript", "KillProcess"];
-    private static readonly string[] Type2Tools = ["GetTerminalStatus", "GetEnvironment", "Which"];
+    private static readonly string[] Type1Tools = ["desktop-commander__start_process", "RunScript", "desktop-commander__kill_process"];
+    private static readonly string[] Type2Tools = ["desktop-commander__list_sessions", "GetEnvironment", "Which"];
 
     /// <summary>
     /// Terminal server status and constraints — same data GetTerminalStatus

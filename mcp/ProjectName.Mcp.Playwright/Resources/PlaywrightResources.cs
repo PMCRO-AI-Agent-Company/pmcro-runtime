@@ -41,7 +41,7 @@ public sealed class PlaywrightResources(PlaywrightSessionManager session)
                 headless              = status.Headless
             },
             type1_tools = new[] { "NavigateTo", "ClickElement", "FillInput", "SubmitForm", "TakeScreenshot" },
-            type2_tools = new[] { "GetSessionStatus", "GetPageContent", "GetPageSnapshot", "GetPageTitle" },
+            type2_tools = new[] { "GetSessionStatus", "GetPageContent", "GetPageSnapshot", "GetPageTitle", "GetLastDownload" },
             law_anchors = new[] { "PW-LAW-001", "PW-LAW-003", "PW-LAW-005", "MAAI-001", "EC-002" }
         }, JsonOptions);
     }

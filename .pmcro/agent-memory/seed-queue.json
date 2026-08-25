@@ -1,0 +1,8 @@
+{
+  "active_seed": {
+    "id": "frontend-placeholder-dedupe-001",
+    "intent": "Fix duplicate placeholder text: Console hero task-submission input (id=colony-prompt) and the docked chat rail input (ORCHESTRATOR_LABELS.chatInputPlaceholder) in ConsoleView.tsx currently render the identical placeholder string, causing automation/screen-reader ambiguity between two semantically different inputs.",
+    "source": "live browser verification, 2026-08-22, user-directed test-and-fix session",
+    "status": "active"
+  }
+}

@@ -26,7 +26,7 @@ namespace ProjectName.Mcp.Terminal.Prompts;
 public sealed class TerminalPrompts
 {
     [McpServerPrompt(Name = "TerminalMissionBrief")]
-    [Description("Essential guidance for running commands and scripts. Load this before planning any RunCommand, RunScript, or KillProcess action.")]
+    [Description("Essential guidance for running commands and scripts. Load this before planning any desktop-commander__start_process, RunScript, or desktop-commander__kill_process action.")]
     public static IEnumerable<ChatMessage> GetTerminalMissionBrief()
     {
         yield return new ChatMessage(ChatRole.User, """
@@ -37,18 +37,20 @@ public sealed class TerminalPrompts
             1. OBSERVE: Read 'terminal://status/workspace' for the working root and limits,
                and 'terminal://status/slots' for the slot layout and TYPE1/TYPE2 boundary.
             2. DISCOVER: Use 'Which(command)' (TYPE2, no approval needed) to confirm an
-               executable actually exists on PATH before planning a RunCommand around it.
-            3. ACT: Call RunCommand or RunScript for ONE atomic command. This returns
-               TYPE1_PENDING — it does NOT execute yet.
+               executable actually exists on PATH before planning a run around it.
+            3. ACT: Call 'desktop-commander__start_process' (single command) or 'RunScript'
+               (script file) for ONE atomic action. This returns TYPE1_PENDING — it does
+               NOT execute yet.
             4. WAIT: The Orchestrator surfaces the pending request for HIL approval. Only
                after approval does the real command run and produce real stdout/stderr.
             5. VERIFY: Parse the JSON response. Confirm 'success' is true and check exit_code
                — a zero exit_code is the only reliable signal a command actually succeeded.
 
             ── ⚖️ THE TERMINAL LAWS (Server-Enforced) ───────────────────────────────
-            - MAAI-001 (HIL Gate): RunCommand, RunScript, and KillProcess ALWAYS return
-              TYPE1_PENDING first. This server never executes them directly — only the
-              Orchestrator dispatches them, and only after human approval.
+            - MAAI-001 (HIL Gate): 'desktop-commander__start_process', 'RunScript', and
+              'desktop-commander__kill_process' ALWAYS return TYPE1_PENDING first. This
+              server never executes them directly — only the Orchestrator dispatches them,
+              and only after human approval.
             - SAFETY-003 (Sandbox): workingDirectory is always resolved relative to
               WorkingRoot and cannot escape it — do not attempt '../' traversal.
             - Slots are informational labels for log/audit readability only. They do not

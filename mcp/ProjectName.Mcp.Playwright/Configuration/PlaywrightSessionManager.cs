@@ -30,8 +30,16 @@ public sealed class PlaywrightSessionManager(PlaywrightConfig config, ILogger<Pl
     private IPlaywright? _playwright;
     private IBrowser?    _browser;
     private IPage?       _page;
+    private DownloadRecord? _lastDownload;
 
     public bool IsLaunched => _browser is not null;
+
+    /// <summary>
+    /// EC-PW-002 fix: the most recent browser-triggered download captured on the
+    /// active page, or null if none has occurred this session. Safe to call
+    /// without the lock — reads a volatile ref, same pattern as GetStatus().
+    /// </summary>
+    public DownloadRecord? GetLastDownload() => _lastDownload;
 
     // ── Status snapshot (safe to call without the lock — reads volatile refs) ─
     public BrowserSessionStatus GetStatus() => new(
@@ -63,6 +71,41 @@ public sealed class PlaywrightSessionManager(PlaywrightConfig config, ILogger<Pl
         _page = await _browser.NewPageAsync();
         _page.SetDefaultNavigationTimeout(config.NavigationTimeoutMs);
         _page.SetDefaultTimeout(config.ActionTimeoutMs);
+
+        // EC-PW-002 fix (2026-08-24): subscribe to the page's Download event so
+        // browser-triggered downloads (e.g. a "Generate PDF" button that isn't a
+        // navigation or an explicit screenshot call) are actually captured instead
+        // of silently vanishing into the headless browser's ether. Mirrors the
+        // ScreenshotDir sandbox pattern via ResolveDownloadPath (PW-LAW-007).
+        _page.Download += async (_, download) =>
+        {
+            try
+            {
+                var path = config.ResolveDownloadPath(download.SuggestedFilename);
+                await download.SaveAsAsync(path);
+                var info = new FileInfo(path);
+                _lastDownload = new DownloadRecord(
+                    SuggestedFilename: download.SuggestedFilename,
+                    SavedPath:         path,
+                    Bytes:             info.Exists ? info.Length : 0,
+                    Url:               download.Url,
+                    CapturedAtUtc:     DateTime.UtcNow);
+                logger.LogInformation(
+                    "[Playwright] Download captured: suggested='{Suggested}' savedTo='{Path}' bytes={Bytes} url={Url}",
+                    download.SuggestedFilename, path, _lastDownload.Bytes, download.Url);
+            }
+            catch (Exception ex)
+            {
+                logger.LogWarning(ex, "[Playwright] Download event fired but capture failed: {Message}", ex.Message);
+                _lastDownload = new DownloadRecord(
+                    SuggestedFilename: download.SuggestedFilename,
+                    SavedPath:         null,
+                    Bytes:             0,
+                    Url:               download.Url,
+                    CapturedAtUtc:     DateTime.UtcNow,
+                    Error:             ex.Message);
+            }
+        };
 
         logger.LogInformation("[Playwright] Browser launched, page ready");
     }
@@ -110,4 +153,19 @@ public sealed record BrowserSessionStatus(
     int     NavigationTimeoutMs,
     int     ActionTimeoutMs,
     bool    Headless
+);
+
+/// <summary>
+/// EC-PW-002 fix. Records the outcome of the most recent browser-triggered
+/// download. SavedPath is null and Error is set if capture itself failed
+/// (e.g. PW-LAW-007 sandbox rejection) — callers must check both, not assume
+/// a non-null record means the file exists on disk.
+/// </summary>
+public sealed record DownloadRecord(
+    string?  SuggestedFilename,
+    string?  SavedPath,
+    long     Bytes,
+    string   Url,
+    DateTime CapturedAtUtc,
+    string?  Error = null
 );

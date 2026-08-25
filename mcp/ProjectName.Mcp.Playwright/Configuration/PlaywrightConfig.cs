@@ -37,6 +37,14 @@ public sealed class PlaywrightConfig
     // absolute paths supplied by the agent are rejected, never followed.
     public string ScreenshotDir     { get; init; } = Path.Combine(Directory.GetCurrentDirectory(), "Screenshots");
 
+    // ── Download sandbox (PW-LAW-007 — download capture, EC-PW-002 fix) ───────
+    // Added 2026-08-24: browser-triggered downloads (e.g. a page's "Generate PDF"
+    // button) previously had no capture mechanism — PlaywrightSessionManager never
+    // subscribed to IPage.Download, so any download was silently lost with no way
+    // for a caller to verify one occurred. Mirrors ScreenshotDir/PW-LAW-006 exactly:
+    // same sandbox-path pattern, same "never trust a client-supplied path" posture.
+    public string DownloadDir       { get; init; } = Path.Combine(Directory.GetCurrentDirectory(), "Downloads");
+
     // ── Session control (PW-LAW-005 — serial page execution) ─────────────────
     public bool Headless            { get; init; } = true;
 
@@ -56,9 +64,13 @@ public sealed class PlaywrightConfig
         Headless             = section.GetValue<bool?>("Headless")            ?? Headless;
         AllowedPrivateHosts  = section.GetSection("AllowedPrivateHosts").Get<string[]>() ?? AllowedPrivateHosts;
         ScreenshotDir        = section.GetValue<string?>("ScreenshotDir")      ?? ScreenshotDir;
+        DownloadDir          = section.GetValue<string?>("DownloadDir")        ?? DownloadDir;
 
         if (!Directory.Exists(ScreenshotDir))
             Directory.CreateDirectory(ScreenshotDir);
+
+        if (!Directory.Exists(DownloadDir))
+            Directory.CreateDirectory(DownloadDir);
     }
 
     /// <summary>
@@ -121,6 +133,39 @@ public sealed class PlaywrightConfig
         if (!combined.StartsWith(sandboxPrefix, StringComparison.OrdinalIgnoreCase))
             throw new UnauthorizedAccessException(
                 $"PW-LAW-006: outputPath '{requestedName}' resolves outside the allowed ScreenshotDir sandbox.");
+
+        return combined;
+    }
+
+    /// <summary>
+    /// PW-LAW-007 enforcement (EC-PW-002 fix). Resolves a browser-suggested download
+    /// filename into a safe absolute path confined to <see cref="DownloadDir"/>.
+    /// Identical sandboxing posture to ResolveScreenshotPath: the suggested filename
+    /// is Playwright/browser-supplied (effectively remote-controlled by the page
+    /// being automated), so it MUST NOT be trusted as an absolute filesystem path —
+    /// traversal and directory components are stripped, never followed. A null/empty
+    /// suggestion auto-generates a timestamped filename. Throws
+    /// <see cref="UnauthorizedAccessException"/> if the resolved path escapes
+    /// DownloadDir.
+    /// </summary>
+    public string ResolveDownloadPath(string? suggestedFilename)
+    {
+        var fileName = string.IsNullOrWhiteSpace(suggestedFilename)
+            ? $"download-{DateTime.UtcNow:yyyyMMdd-HHmmssfff}"
+            : Path.GetFileName(suggestedFilename); // strips any directory component outright
+
+        if (string.IsNullOrWhiteSpace(fileName))
+            throw new InvalidOperationException($"PW-LAW-007: suggested filename '{suggestedFilename}' resolved to an empty filename.");
+
+        var combined = Path.GetFullPath(Path.Combine(DownloadDir, fileName));
+
+        var sandboxPrefix = DownloadDir.EndsWith(Path.DirectorySeparatorChar.ToString())
+            ? DownloadDir
+            : DownloadDir + Path.DirectorySeparatorChar;
+
+        if (!combined.StartsWith(sandboxPrefix, StringComparison.OrdinalIgnoreCase))
+            throw new UnauthorizedAccessException(
+                $"PW-LAW-007: suggested filename '{suggestedFilename}' resolves outside the allowed DownloadDir sandbox.");
 
         return combined;
     }

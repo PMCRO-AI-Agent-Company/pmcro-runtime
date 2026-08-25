@@ -1,4 +1,5 @@
 // src/services/ProjectName.OrchestratorService/Skills/MarketplaceSkillsWatcherService.cs
+using System.Text.Json;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -33,6 +34,20 @@ namespace ProjectName.OrchestratorService.Skills;
 /// skills still don't hot-load end-to-end after this change, the remaining gap is
 /// AgentSkillsProvider's own caching behavior, not this class -- next step would
 /// be confirming that against Microsoft's docs/source directly.
+///
+/// ARCH-MARKETPLACE-BRIDGE-002 (2026-08-22): the original version of this class
+/// watched ONLY marketplace.json. That left a real gap, confirmed empirically
+/// the same day: editing a SKILL.md directly under a staged plugin's source repo
+/// (e.g. Z:\pmcro-skills\plugins\pmcro-orchestrator\skills\orchestrate\SKILL.md)
+/// produced no re-materialization -- the running app kept serving the stale copy
+/// from StagingRoot until marketplace.json itself was touched or the app
+/// restarted. Since every staged plugin's "source" already points cross-repo
+/// (../pmcro-skills/plugins/..., ../dotnet-skills/plugins/..., etc -- see
+/// marketplace.json), this class now also watches each staged plugin's source
+/// root recursively, so editing a skill's own files hot-reloads the same way
+/// editing marketplace.json does. The source-watcher list is rebuilt every time
+/// marketplace.json changes too, so adding/removing/re-staging a plugin updates
+/// what's watched without a restart.
 /// </summary>
 public sealed class MarketplaceSkillsWatcherService(
     ILogger<MarketplaceSkillsWatcherService> logger,
@@ -40,6 +55,7 @@ public sealed class MarketplaceSkillsWatcherService(
     IOptions<OrchestratorConfig> config) : IHostedService, IDisposable
 {
     private FileSystemWatcher? _watcher;
+    private readonly List<FileSystemWatcher> _sourceWatchers = [];
     private readonly SemaphoreSlim _gate = new(1, 1);
     private Timer? _debounce;
 
@@ -67,6 +83,103 @@ public sealed class MarketplaceSkillsWatcherService(
         };
         _watcher.Changed += (_, _) => ScheduleRefresh();
         _watcher.Created += (_, _) => ScheduleRefresh();
+
+        RefreshSourceWatchers();
+    }
+
+    // ARCH-MARKETPLACE-BRIDGE-002: rebuilds the per-plugin source watchers from
+    // the current marketplace.json contents. Called once at startup and again
+    // on every debounced marketplace.json change, so adding/removing/re-staging
+    // a plugin updates what's watched without an app restart. Disposes the old
+    // watcher set first -- this is the only place _sourceWatchers is mutated,
+    // and it always runs inside the same _gate-guarded path as MaterializeAsync
+    // (see ScheduleRefresh), so there is no concurrent-mutation race with itself.
+    private void RefreshSourceWatchers()
+    {
+        foreach (var w in _sourceWatchers) w.Dispose();
+        _sourceWatchers.Clear();
+
+        foreach (var pluginRoot in GetStagedPluginSourceDirs())
+        {
+            try
+            {
+                var watcher = new FileSystemWatcher(pluginRoot)
+                {
+                    IncludeSubdirectories = true,
+                    NotifyFilter = NotifyFilters.LastWrite | NotifyFilters.CreationTime
+                        | NotifyFilters.Size | NotifyFilters.FileName | NotifyFilters.DirectoryName,
+                    EnableRaisingEvents = true,
+                };
+                watcher.Changed += (_, _) => ScheduleRefresh();
+                watcher.Created += (_, _) => ScheduleRefresh();
+                watcher.Deleted += (_, _) => ScheduleRefresh();
+                watcher.Renamed += (_, _) => ScheduleRefresh();
+                _sourceWatchers.Add(watcher);
+            }
+            catch (Exception ex)
+            {
+                // A single bad plugin root (permissions, drive unmounted, etc.)
+                // should not prevent watching the rest.
+                logger.LogWarning(ex,
+                    "[MarketplaceSkills] failed to start source watcher for {PluginRoot} -- skipping.",
+                    pluginRoot);
+            }
+        }
+
+        logger.LogInformation(
+            "[MarketplaceSkills] Watching {Count} staged plugin source director(ies) for hot-reload.",
+            _sourceWatchers.Count);
+    }
+
+    // Reads marketplace.json directly (mirrors MarketplaceSkillsMaterializer's own
+    // parsing -- deliberately not shared/refactored into that class, since this
+    // read is watcher-setup bookkeeping, not materialization, and keeping them
+    // separate avoids coupling watcher lifecycle to materializer internals).
+    // Only "stage": true plugins are watched, matching what MaterializeAsync
+    // actually copies -- watching stage:false entries would just burn file
+    // handles on directories nothing ever reads from StagingRoot.
+    private List<string> GetStagedPluginSourceDirs()
+    {
+        var result = new List<string>();
+        var repoRoot = config.Value.FileSystemRoot;
+        var marketplacePath = Path.Combine(repoRoot,
+            config.Value.MarketplaceRelativePath.Replace('/', Path.DirectorySeparatorChar));
+
+        if (!File.Exists(marketplacePath)) return result;
+
+        try
+        {
+            var text = File.ReadAllText(marketplacePath);
+            using var doc = JsonDocument.Parse(text);
+            if (!doc.RootElement.TryGetProperty("plugins", out var plugins) || plugins.ValueKind != JsonValueKind.Array)
+                return result;
+
+            foreach (var plugin in plugins.EnumerateArray())
+            {
+                var source = plugin.TryGetProperty("source", out var s) ? s.GetString() : null;
+                if (string.IsNullOrWhiteSpace(source)) continue;
+
+                var stage = !plugin.TryGetProperty("stage", out var stageProp)
+                    || stageProp.ValueKind != JsonValueKind.False;
+                if (!stage) continue;
+
+                var pluginRoot = Path.GetFullPath(Path.Combine(repoRoot, source));
+                if (Directory.Exists(pluginRoot))
+                    result.Add(pluginRoot);
+                else
+                    logger.LogWarning(
+                        "[MarketplaceSkills] staged plugin source not found, cannot watch: {PluginRoot}",
+                        pluginRoot);
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex,
+                "[MarketplaceSkills] failed to parse {Path} while building source-watcher list.",
+                marketplacePath);
+        }
+
+        return result;
     }
 
     // Debounced: editors/tools often fire several Changed events for one logical
@@ -98,6 +211,8 @@ public sealed class MarketplaceSkillsWatcherService(
     public void Dispose()
     {
         _watcher?.Dispose();
+        foreach (var w in _sourceWatchers) w.Dispose();
+        _sourceWatchers.Clear();
         _debounce?.Dispose();
         _gate.Dispose();
     }

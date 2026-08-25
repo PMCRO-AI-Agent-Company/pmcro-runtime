@@ -7,6 +7,10 @@
   <Folder Name="/src/">
     <Project Path="src/ProjectName.ServiceDefaults/ProjectName.ServiceDefaults.csproj" />
   </Folder>
+  <Folder Name="/src/services/" />
+  <Folder Name="/tests/">
+    <Project Path="tests/ProjectName.OrchestratorService.Tests/ProjectName.OrchestratorService.Tests.csproj" />
+  </Folder>
   <Project Path="src/ProjectName.AppHost/ProjectName.AppHost.csproj" />
   <Project Path="src/services/ProjectName.OrchestratorService/ProjectName.OrchestratorService.csproj" />
 </Solution>
