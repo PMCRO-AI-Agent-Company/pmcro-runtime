@@ -5,12 +5,10 @@
 //
 // The previous implementation called PmcroLoop.RunAsync directly. That created
 // a competing hand-rolled execution engine beside MAF's declarative workflow
-// engine and was the source of an architectural split: the live MCP operation
-// could succeed while evidence coverage was generated against a different
-// execution representation. The declarative workflow now owns phase routing,
-// MCP execution, evidence capture, HIL, and cycle execution. PmcroLoop remains
-// available as a migration/reference implementation until the live regression
-// suite proves the declarative path equivalent.
+// engine and was the source of an architectural split. The declarative workflow
+// now owns phase routing, MCP execution, evidence capture, HIL, and cycle
+// execution. PmcroLoop remains available as a migration/reference implementation
+// until the live regression suite proves the declarative path equivalent.
 
 using System.ComponentModel;
 using Microsoft.Agents.AI;
@@ -72,17 +70,11 @@ public sealed class PmcroCycleSkill(
             "[Cycle] run_pmcro_cycle -> MAF declarative workflow — trail={Trail} intent=\"{Intent}\"",
             trailId, seedIntent);
 
-        // Validate routing before entering the workflow so an invalid subject name
-        // fails deterministically instead of being silently substituted after planning.
         var resolved = registry.Resolve(subjectAgent);
         if (resolved is null && !ChiefDomains.Contains(subjectAgent))
             throw new InvalidOperationException(
                 $"No AIAgent registered for subjectAgent='{subjectAgent}'. Register it before dispatching a cycle.");
 
-        // The current declarative runner owns the authoritative execution graph.
-        // It creates the sealed trail itself; the caller-supplied trail id is used
-        // for correlation at this skill boundary and remains part of the returned
-        // contract. The workflow's own trail id is returned as the authoritative id.
         var result = await declarativeRunner.RunAsync(seedIntent, subjectAgent, project);
 
         logger.LogInformation(
@@ -91,8 +83,7 @@ public sealed class PmcroCycleSkill(
 
         return System.Text.Json.JsonSerializer.Serialize(new
         {
-            trail_id = result.TrailId ?? trailId,
-            requested_trail_id = trailId,
+            trail_id = trailId,
             disposition = result.Disposition.ToString().ToUpperInvariant(),
             final_output = result.FinalOutput,
             retry_context = result.RetryContext,
