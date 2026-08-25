@@ -4,9 +4,9 @@
 
 .NET Aspire orchestration + Microsoft Agent Framework (MAF) loop + Next.js/CopilotKit frontend that executes governed Plan → Make → Check → Reflect cycles and seals immutable trails.
 
-## Current verified platform baseline
+## Current platform baseline
 
-As of 2026-08-25, the runtime is pinned to the current published MAF 1.19.0 stable core/workflow/harness line, the matching 1.19.0 preview hosting/DevUI surface, and ModelContextProtocol 2.2.0. MAF 1.19.0 was published on 2026-08-22; the MCP .NET SDK 2.2.0 was published on 2026-08-13. citeturn5search4turn4search0
+The runtime is pinned to the current published MAF 1.19.0 stable core/workflow/harness line, the matching 1.19.0 preview hosting/DevUI surface, and ModelContextProtocol 2.2.0. Version-sensitive decisions are recorded in `Directory.Packages.props` and must be revalidated before future upgrades.
 
 | Layer | Location | Role |
 |---|---|---|
@@ -19,11 +19,11 @@ As of 2026-08-25, the runtime is pinned to the current published MAF 1.19.0 stab
 
 ### MAF / MCP boundary
 
-PMCRO uses Microsoft Agent Framework for agent/workflow execution rather than implementing a competing agent runtime. MAF supports both local and hosted MCP tools, Harness, approvals and observability; PMCRO adds governance, trail semantics, acceptability gates and the PMCR-O cycle around those primitives. citeturn0search1turn0search7
+PMCRO uses Microsoft Agent Framework for agent/workflow execution rather than implementing a competing agent runtime. MAF provides local and hosted MCP tool integration, Harness, approvals and observability; PMCRO adds governance, trail semantics, acceptability gates and the PMCR-O cycle around those primitives.
 
 The MCP servers remain capability providers. Their calls cross the `pmcro-actuator` evidence boundary and are preserved as governed evidence rather than being reimplemented inside the Orchestrator.
 
-> **Compatibility note:** the current MAF .NET MCP connector targets the 2025-11-25 compatibility model for task semantics; MCP 2026-07-28 Tasks Extension support is still tracked upstream. Keep the runtime on MCP 2.2.0 while explicitly testing protocol negotiation before enabling 2026 task-only server behavior. citeturn0search0
+> **Compatibility note:** the current MAF .NET MCP connector has an upstream gap around the MCP 2026-07-28 Tasks Extension. Keep the runtime on the stable MCP 2.2.0 SDK while explicitly testing protocol negotiation before enabling 2026 task-only server behavior.
 
 ## Quick start
 
@@ -74,6 +74,6 @@ The runtime is governed by the PMCR-O laws and contracts from `pmcro-skills`. `.
 
 ## Security
 
-MCP, shell/CodeAct and mutating GitHub operations are capability boundaries. Read-only inspection may be automatic; mutations require explicit governed approval and evidence. Third-party skills must be inspected before installation because Agent Skills can contain prompt injections or executable content. citeturn0search8
+MCP, shell/CodeAct and mutating GitHub operations are capability boundaries. Read-only inspection may be automatic; mutations require explicit governed approval and evidence. Third-party skills must be inspected before installation because Agent Skills can contain prompt injections or executable content.
 
 See `AGENTS.md` for repository execution rules.
