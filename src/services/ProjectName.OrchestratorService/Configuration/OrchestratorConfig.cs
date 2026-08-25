@@ -2,8 +2,8 @@ namespace ProjectName.OrchestratorService.Configuration;
 
 /// <summary>
 /// Orchestrator runtime configuration.
-/// GTDDD-MANDATE: runtime values are sourced from configuration/environment;
-/// repository-local skill ownership is not assumed by the service.
+/// Runtime values are sourced from configuration/environment; repository-local
+/// skill ownership is not assumed by the service.
 /// </summary>
 public sealed class OrchestratorConfig
 {
@@ -17,14 +17,23 @@ public sealed class OrchestratorConfig
     public bool SeedIntentSynthesis { get; set; } = true;
     public int MaxChainedTrails { get; set; } = 20;
 
-    /// <summary>Marketplace metadata used for catalog/browsing, not live skill ownership.</summary>
+    /// <summary>Marketplace metadata used for catalog/browsing, not runtime state.</summary>
     public string MarketplaceRelativePath { get; set; } = ".agents/plugins/marketplace.json";
 
     /// <summary>
-    /// Canonical Agent Skills roots. Paths are resolved relative to FileSystemRoot
-    /// unless absolute. The default is the sibling pmcro-skills repository.
+    /// Canonical skill roots. These are capability sources; runtime state remains
+    /// under .pmcro. Keep the list curated because MAF deduplicates duplicate skill
+    /// names with first-source precedence.
     /// </summary>
-    public string[] SkillPaths { get; set; } = ["../pmcro-skills/.agents/skills"];
+    public string[] SkillPaths { get; set; } =
+    [
+        "../pmcro-skills/plugins/pmcro-maf/skills",
+        "../pmcro-skills/plugins/pmcro-orchestrator/skills",
+        "../pmcro-skills/plugins/pmcro-strategy/skills",
+        "../dotnet-skills/plugins/dotnet-maf/skills",
+        "../github-skills/plugins/github/skills",
+        "../figma-skills/plugins/figma/skills"
+    ];
 
     /// <summary>Generated/cache root consumed by MAF's AgentSkillsProvider.</summary>
     public string SkillsStagingPath { get; set; } = ".pmcro/skills-staging";
