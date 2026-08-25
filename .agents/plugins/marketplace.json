@@ -3,16 +3,16 @@
   "owner": { "name": "Tooensure LLC" },
   "_comment": "Cross-repo catalog for browsing and runtime staging. Only entries with stage=true are materialized into the MAF skill staging root. Catalog sources must point to real plugin directories; runtime state stays under .pmcro/.",
   "plugins": [
-    { "name": "pmcro-system", "source": "../pmcro-skills/plugins/pmcro-system", "description": "PMCRO kernel: laws, constraints, acceptability, self-reference, messages, and canonical output.", "stage": true },
-    { "name": "pmcro-orchestrator", "source": "../pmcro-skills/plugins/pmcro-orchestrator", "description": "Governed orchestration and Planner/Maker/Checker/Reflector phase agents.", "stage": true },
-    { "name": "pmcro-strategy", "source": "../pmcro-skills/plugins/pmcro-strategy", "description": "Strategy skills selected by the Orchestrator.", "stage": true },
-    { "name": "pmcro-trail", "source": "../pmcro-skills/plugins/pmcro-trail", "description": "Trail validation, query, replay, diff, extraction, and export.", "stage": true },
-    { "name": "pmcro-actuator", "source": "../pmcro-skills/plugins/pmcro-actuator", "description": "Governed MCP actuator/evidence boundary.", "stage": true },
-    { "name": "pmcro-maf", "source": "../pmcro-skills/plugins/pmcro-maf", "description": "MAF Harness, Agent Skills, MCP, CodeAct, Workflows, approvals, observability, AG-UI, and web research guidance.", "stage": true },
-    { "name": "dotnet-aspire", "source": "../dotnet-skills/plugins/dotnet-aspire", "description": ".NET Aspire orchestration patterns used by the runtime.", "stage": true },
-    { "name": "dotnet-maf", "source": "../dotnet-skills/plugins/dotnet-maf", "description": ".NET Microsoft Agent Framework implementation patterns.", "stage": true },
-    { "name": "dotnet-test", "source": "../dotnet-skills/plugins/dotnet-test", "description": ".NET test authoring and verification capabilities.", "stage": true },
-    { "name": "github", "source": "../github-skills/plugins/github", "description": "Governed GitHub repository, PR, Actions, MCP, security, and skill publication capabilities.", "stage": true },
-    { "name": "figma", "source": "../figma-skills/plugins/figma", "description": "Figma design workflow capabilities.", "stage": true }
+    { "name": "pmcro-system", "source": "../../pmcro-skills/plugins/pmcro-system", "description": "PMCRO kernel: laws, constraints, acceptability, self-reference, messages, and canonical output.", "stage": true },
+    { "name": "pmcro-orchestrator", "source": "../../pmcro-skills/plugins/pmcro-orchestrator", "description": "Governed orchestration and Planner/Maker/Checker/Reflector phase agents.", "stage": true },
+    { "name": "pmcro-strategy", "source": "../../pmcro-skills/plugins/pmcro-strategy", "description": "Strategy skills selected by the Orchestrator.", "stage": true },
+    { "name": "pmcro-trail", "source": "../../pmcro-skills/plugins/pmcro-trail", "description": "Trail validation, query, replay, diff, extraction, and export.", "stage": true },
+    { "name": "pmcro-actuator", "source": "../../pmcro-skills/plugins/pmcro-actuator", "description": "Governed MCP actuator/evidence boundary.", "stage": true },
+    { "name": "pmcro-maf", "source": "../../pmcro-skills/plugins/pmcro-maf", "description": "MAF Harness, Agent Skills, MCP, CodeAct, Workflows, approvals, observability, AG-UI, and web research guidance.", "stage": true },
+    { "name": "dotnet-aspire", "source": "../../dotnet-skills/plugins/dotnet-aspire", "description": ".NET Aspire orchestration patterns used by the runtime.", "stage": true },
+    { "name": "dotnet-maf", "source": "../../dotnet-skills/plugins/dotnet-maf", "description": ".NET Microsoft Agent Framework implementation patterns.", "stage": true },
+    { "name": "dotnet-test", "source": "../../dotnet-skills/plugins/dotnet-test", "description": ".NET test authoring and verification capabilities.", "stage": true },
+    { "name": "github", "source": "../../github-skills/plugins/github", "description": "Governed GitHub repository, PR, Actions, MCP, security, and skill publication capabilities.", "stage": true },
+    { "name": "figma", "source": "../../figma-skills/plugins/figma", "description": "Figma design workflow capabilities.", "stage": true }
   ]
 }
