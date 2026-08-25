@@ -7,15 +7,16 @@
     <PackageVersion Include="Aspire.Hosting.PostgreSQL.EntityFrameworkCore" Version="13.5.1" />
     <PackageVersion Include="Aspire.Hosting.JavaScript" Version="13.5.1" />
 
-    <!-- Microsoft Agent Framework: stable core/workflow/harness line. -->
+    <!-- Microsoft Agent Framework -->
     <PackageVersion Include="Microsoft.Agents.AI" Version="1.19.0" />
     <PackageVersion Include="Microsoft.Agents.AI.Abstractions" Version="1.19.0" />
     <PackageVersion Include="Microsoft.Agents.AI.OpenAI" Version="1.19.0" />
     <PackageVersion Include="Microsoft.Agents.AI.Workflows" Version="1.19.0" />
     <PackageVersion Include="Microsoft.Agents.AI.Workflows.Declarative" Version="1.19.0" />
+    <PackageVersion Include="Microsoft.Agents.AI.Workflows.Declarative.Mcp" Version="1.19.0" />
     <PackageVersion Include="Microsoft.Agents.AI.Harness" Version="1.19.0" />
 
-    <!-- Matching 1.19.0 preview hosting/developer surface. -->
+    <!-- Matching hosting/developer surface -->
     <PackageVersion Include="Aspire.Hosting.AgentFramework.DevUI" Version="1.19.0-preview.260822.1" />
     <PackageVersion Include="Microsoft.Agents.AI.Hosting" Version="1.19.0-preview.260822.1" />
     <PackageVersion Include="Microsoft.Agents.AI.Hosting.AGUI.AspNetCore" Version="1.19.0-preview.260822.1" />
@@ -31,7 +32,7 @@
     <PackageVersion Include="MessagePack" Version="3.1.8" />
     <PackageVersion Include="Patchright" Version="1.61.0" />
 
-    <!-- Microsoft.Extensions.AI latest published line used by MAF 1.19.0. -->
+    <!-- Microsoft.Extensions.AI -->
     <PackageVersion Include="Microsoft.Extensions.Options" Version="11.0.0-preview.7.26381.103" />
     <PackageVersion Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="11.0.0-preview.7.26381.103" />
     <PackageVersion Include="Microsoft.Extensions.Logging.Abstractions" Version="11.0.0-preview.7.26381.103" />
@@ -40,7 +41,7 @@
     <PackageVersion Include="Microsoft.Extensions.Http.Resilience" Version="10.9.0" />
     <PackageVersion Include="Microsoft.Extensions.ServiceDiscovery" Version="10.9.0" />
 
-    <!-- MCP: current stable .NET SDK line. -->
+    <!-- MCP -->
     <PackageVersion Include="ModelContextProtocol" Version="2.2.0" />
     <PackageVersion Include="ModelContextProtocol.AspNetCore" Version="2.2.0" />
 
