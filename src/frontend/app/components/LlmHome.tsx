@@ -30,7 +30,8 @@ const modes: { id: OMode; label: string; short: string; description: string }[] 
 
 function phaseState(current: Phase, target: Phase) {
   const order: Phase[] = ["Planning", "Checking", "Reflecting", "Sealed"];
-  const c = order.indexOf(current === "CycleComplete" ? "Reflecting" : current);
+  const normalized = current === "CycleComplete" ? "Reflecting" : current;
+  const c = order.indexOf(normalized);
   const t = order.indexOf(target);
   if (current === "Error") return "error";
   if (t < c || current === "Sealed") return "done";
@@ -70,7 +71,8 @@ export default function LlmHome({ trailsByDomain }: { trailsByDomain: Record<str
   }, [state?.phase, router]);
 
   const recentTrails = useMemo(() => Object.values(trailsByDomain).flat().slice(0, 5), [trailsByDomain]);
-  const active = !!state?.phase && state.phase !== "Sealed" && state.phase !== "Error";
+  const hasCycle = Boolean(state?.phase);
+  const active = hasCycle && state?.phase !== "Sealed" && state?.phase !== "Error";
   const labels = useMemo(() => ({
     chatInputPlaceholder: `Message PMCRO · ${selectedMode.label}…`,
     welcomeMessageText: `I am the PMCR-O Orchestrator. ${selectedMode.description}. Give me a goal and I will coordinate the governed cycle.`,
@@ -162,7 +164,12 @@ export default function LlmHome({ trailsByDomain }: { trailsByDomain: Record<str
           {inspectorOpen && <aside className={styles.inspector}>
             <div className={styles.inspectorHeader}><div><span>EXECUTION</span><strong>{active ? `Cycle ${state?.cycle ?? 1}` : "Ready"}</strong></div><span className={styles.liveBadge}>{active ? "LIVE" : "IDLE"}</span></div>
             <div className={styles.phaseList}>
-              {(["Planning", "Checking", "Reflecting", "Sealed"] as Phase[]).map((phase, index) => { const status = phaseState(state?.phase ?? "Planning", phase); return <div key={phase} className={styles.phaseRow}><span className={`${styles.phaseNode} ${styles[status]}`}>{status === "done" ? "✓" : index + 1}</span><div><strong>{phase === "Planning" ? "Planner" : phase === "Checking" ? "Checker" : phase === "Reflecting" ? "Reflector" : "Trail"}</strong><small>{status === "active" ? "In progress" : status === "done" ? "Complete" : "Waiting"}</small></div></div>; })}
+              {(["Planning", "Checking", "Reflecting", "Sealed"] as Phase[]).map((phase, index) => {
+                const status = hasCycle ? phaseState(state!.phase, phase) : "pending";
+                const label = phase === "Planning" ? "Planner" : phase === "Checking" ? "Checker" : phase === "Reflecting" ? "Reflector" : "Trail";
+                const statusText = !hasCycle ? "Waiting" : status === "active" ? "In progress" : status === "done" ? "Complete" : status === "error" ? "Error" : "Waiting";
+                return <div key={phase} className={styles.phaseRow}><span className={`${styles.phaseNode} ${styles[status]}`}>{status === "done" ? "✓" : index + 1}</span><div><strong>{label}</strong><small>{statusText}</small></div></div>;
+              })}
             </div>
             <div className={styles.inspectorDivider} />
             <div className={styles.inspectorMeta}><span>O-MODE</span><strong>{selectedMode.label}</strong></div>
