@@ -6,6 +6,8 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <UserSecretsId>16ff0978-b3d9-49cf-aada-961077436be7</UserSecretsId>
+    <!-- Opt into the current Aspire CLI bundle orchestration dependency model. -->
+    <AspireUseCliBundle>true</AspireUseCliBundle>
   </PropertyGroup>
 
   <ItemGroup>
@@ -17,15 +19,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <!-- API + Services -->
     <ProjectReference Include="..\services\ProjectName.OrchestratorService\ProjectName.OrchestratorService.csproj" />
-
-    <!-- Phase services — Anthropic Orchestrator-Workers pattern -->
-
-    <!-- HTTP facade over OrchestratorService (chat/trail replay) -->
     <ProjectReference Include="..\ProjectName.OrchestratorApi\ProjectName.OrchestratorApi.csproj" />
-
-    <!-- MCP actuator servers -->
     <ProjectReference Include="..\..\mcp\ProjectName.Mcp.Filesystem\ProjectName.Mcp.Filesystem.csproj" />
     <ProjectReference Include="..\..\mcp\ProjectName.Mcp.Playwright\ProjectName.Mcp.Playwright.csproj" />
     <ProjectReference Include="..\..\mcp\ProjectName.Mcp.Terminal\ProjectName.Mcp.Terminal.csproj" />
