@@ -1,128 +1,89 @@
 <Project>
   <ItemGroup>
-    <!-- ── Aspire (13.4.6 line — matches Aspire.AppHost.Sdk 13.4.6 in AppHost.csproj
-         and Aspire.Hosting.JavaScript 13.4.6 synced from B:) ── -->
+    <!-- ── Aspire (13.5.2 line — matches Aspire.AppHost.Sdk 13.5.2 in AppHost.csproj) ── -->
     <!-- Bumped from 9.4.0 (2026-07-15): Aspire.Hosting.JavaScript 13.4.6 requires
          Aspire.Hosting >= 13.4.6, which triggered NU1109 package-downgrade errors
-         against the old 9.4.0 pin. Verified 13.4.6 exists on NuGet for all four
+         against the old 9.4.0 pin. Verified these versions exist on NuGet for all
          packages below (Microsoft's "Aspire Orchestration Dependencies" family
          all ship in lockstep). -->
     <!-- Aspire.Hosting.AppHost intentionally NOT listed here: Aspire.AppHost.Sdk
          implicitly adds this PackageReference, and CPM forbids centrally versioning
          implicit references (NU1009 fires otherwise). -->
-    <PackageVersion Include="Aspire.Hosting" Version="13.5.2" />
-    <PackageVersion Include="Aspire.Hosting.PostgreSQL" Version="13.5.2" />
-    <PackageVersion Include="Aspire.StackExchange.Redis" Version="13.5.2" />
-    <PackageVersion Include="Aspire.Hosting.PostgreSQL.EntityFrameworkCore" Version="13.5.2" />
-    <!-- ── Synced from B:\pmcro-cline\Directory.Packages.props (2026-07-15) ──
-         W: was rebuilding these from scratch; B: already resolved every one
-         of them against live NuGet, including the interdependent MAF preview
-         track (Hosting/Hosting.OpenAI/DevUI/Harness/Hyperlight/AGUI all share
-         the 260703.1 date-stamp). Copied verbatim rather than re-verifying,
-         since B: is the working reference project. -->
-    <!-- ARCH-ASPIRE-BUMP-002 (2026-08-21): bumped 13.4.6 to 13.5.1. The prior
-         edit left this at 13.4.6 reasoning that its own dependency constraint
-         (Aspire.Hosting >= 13.4.6) was satisfied by the 13.5.1 bump above.
-         WRONG. Got a runtime System.MethodAccessException:
+    <!-- ARCH-ASPIRE-BUMP-002 (2026-08-21): bumped 13.4.6 to 13.5.1, then to 13.5.2.
+         A prior partial bump left Aspire.Hosting.JavaScript on 13.4.6 while the rest
+         moved to 13.5.1, reasoning that its own dependency constraint
+         (Aspire.Hosting >= 13.4.6) was satisfied by the >=13.4.6 bump above. WRONG.
+         Got a runtime System.MethodAccessException:
          JavaScriptHostingExtensions.AddNextJsApp (compiled against 13.4.6)
          failing to call Aspire.Hosting.Utils.PathNormalizer.NormalizePathForCurrentPlatform
          at 13.5.1. These packages share internal/friend-assembly APIs that are
          NOT covered by semver dependency ranges: "ship in lockstep" means
          same exact version, not merely satisfying >= constraints. Every
-         package in this family must move together on every bump. -->
-    <PackageVersion Include="Aspire.Hosting.JavaScript" Version="13.5.1" />
-    <!-- Bumped to the 1.14.0 date-stamp (2026-07-21) family, 2026-07-22.
-         VERIFIED against nuget.org/v3-flatcontainer per-package version lists
-         (not just "dotnet list package outdated", which silently omits
-         prerelease-only packages and had reported these five as "Not found").
-         NOTE (asymmetry): Microsoft.Agents.AI.Harness graduated OUT of the
-         preview track at 1.14.0 (stable, no suffix); its five siblings below
-         are still 1.14.0-preview.260721.1 / -alpha.260721.1. Harness's public
-         API may have shifted independently of its hosting counterparts as a
-         result; re-verify the AsHarnessAgent/HarnessAgentOptions surface in
-         Program.cs against this specific stable release, not assumed
-         unchanged from the 1.13 preview it was pinned to before. -->
-    <PackageVersion Include="Aspire.Hosting.AgentFramework.DevUI" Version="1.18.0-preview.260818.1" />
+         package in this family (including Aspire.Hosting.JavaScript below)
+         must move together on every bump — resolved 2026-08-25 after a merge
+         conflict reintroduced a 13.5.1/13.5.2 split; keeping 13.5.2 across
+         the whole family and bumping Aspire.Hosting.JavaScript to match. -->
+    <PackageVersion Include="Aspire.Hosting" Version="13.5.2" />
+    <PackageVersion Include="Aspire.Hosting.PostgreSQL" Version="13.5.2" />
+    <PackageVersion Include="Aspire.StackExchange.Redis" Version="13.5.2" />
+    <PackageVersion Include="Aspire.Hosting.PostgreSQL.EntityFrameworkCore" Version="13.5.2" />
+    <PackageVersion Include="Aspire.Hosting.JavaScript" Version="13.5.2" />
+
+    <!-- Microsoft Agent Framework -->
+    <PackageVersion Include="Microsoft.Agents.AI" Version="1.19.0" />
+    <PackageVersion Include="Microsoft.Agents.AI.Abstractions" Version="1.19.0" />
+    <PackageVersion Include="Microsoft.Agents.AI.OpenAI" Version="1.19.0" />
+    <PackageVersion Include="Microsoft.Agents.AI.Workflows" Version="1.19.0" />
+    <PackageVersion Include="Microsoft.Agents.AI.Workflows.Declarative" Version="1.19.0" />
+    <PackageVersion Include="Microsoft.Agents.AI.Workflows.Declarative.Mcp" Version="1.19.0" />
+    <PackageVersion Include="Microsoft.Agents.AI.Harness" Version="1.19.0" />
+
+    <!-- Matching hosting/developer surface -->
+    <PackageVersion Include="Aspire.Hosting.AgentFramework.DevUI" Version="1.19.0-preview.260822.1" />
+    <PackageVersion Include="Microsoft.Agents.AI.Hosting" Version="1.19.0-preview.260822.1" />
+    <PackageVersion Include="Microsoft.Agents.AI.Hosting.AGUI.AspNetCore" Version="1.19.0-preview.260822.1" />
+    <PackageVersion Include="Microsoft.Agents.AI.DevUI" Version="1.19.0-preview.260822.1" />
+    <PackageVersion Include="Microsoft.Agents.AI.Hyperlight" Version="1.19.0-preview.260822.1" />
+    <PackageVersion Include="Microsoft.Agents.AI.Hosting.OpenAI" Version="1.19.0-alpha.260822.1" />
+
     <PackageVersion Include="CommunityToolkit.Aspire.Hosting.Ollama" Version="13.4.1-beta.706" />
     <PackageVersion Include="Hyperlight.HyperlightSandbox.Guest.Python" Version="0.5.0" />
-    <PackageVersion Include="Microsoft.Agents.AI.Hosting" Version="1.18.0-preview.260818.1" />
-    <PackageVersion Include="Microsoft.Agents.AI.Hosting.OpenAI" Version="1.18.0-alpha.260818.1" />
-    <PackageVersion Include="Microsoft.Agents.AI.Hosting.AGUI.AspNetCore" Version="1.18.0-preview.260818.1" />
-    <PackageVersion Include="Microsoft.Agents.AI.DevUI" Version="1.18.0-preview.260818.1" />
-    <PackageVersion Include="Microsoft.Agents.AI.Harness" Version="1.18.0" />
-    <PackageVersion Include="Microsoft.Agents.AI.Hyperlight" Version="1.18.0-preview.260818.1" />
     <PackageVersion Include="Microsoft.OpenApi" Version="3.9.0" />
     <PackageVersion Include="Microsoft.AspNetCore.OpenApi" Version="11.0.0-preview.6.26359.118" />
     <PackageVersion Include="Scalar.AspNetCore" Version="2.16.17" />
     <PackageVersion Include="MessagePack" Version="3.1.8" />
     <PackageVersion Include="Patchright" Version="1.61.0" />
-    <!-- ── Microsoft.Extensions.* abstractions (synced to B:\pmcro-cline, 2026-07-15) -->
-    <!-- B: moved this family to the 11.0.0 preview line to satisfy the MAF
-         preview-track packages above, superseding the 10.0.9 pin noted here previously. -->
+
+    <!-- Microsoft.Extensions.AI -->
     <PackageVersion Include="Microsoft.Extensions.Options" Version="11.0.0-preview.7.26381.103" />
     <PackageVersion Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="11.0.0-preview.7.26381.103" />
     <PackageVersion Include="Microsoft.Extensions.Logging.Abstractions" Version="11.0.0-preview.7.26381.103" />
-    <!-- ── OpenTelemetry (synced to B:\pmcro-cline, 2026-07-15) ───────────── -->
+    <PackageVersion Include="Microsoft.Extensions.AI" Version="10.9.0" />
+    <PackageVersion Include="Microsoft.Extensions.AI.Abstractions" Version="10.9.0" />
+    <PackageVersion Include="Microsoft.Extensions.Http.Resilience" Version="10.9.0" />
+    <PackageVersion Include="Microsoft.Extensions.ServiceDiscovery" Version="10.9.0" />
+
+    <!-- MCP -->
+    <PackageVersion Include="ModelContextProtocol" Version="2.2.0" />
+    <PackageVersion Include="ModelContextProtocol.AspNetCore" Version="2.2.0" />
+
+    <!-- OpenTelemetry -->
     <PackageVersion Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="1.18.0" />
     <PackageVersion Include="OpenTelemetry.Extensions.Hosting" Version="1.18.0" />
     <PackageVersion Include="OpenTelemetry.Instrumentation.AspNetCore" Version="1.18.0" />
     <PackageVersion Include="OpenTelemetry.Instrumentation.Http" Version="1.18.0" />
     <PackageVersion Include="OpenTelemetry.Instrumentation.Runtime" Version="1.18.0" />
-    <PackageVersion Include="Microsoft.Extensions.Http.Resilience" Version="10.9.0" />
-    <PackageVersion Include="Microsoft.Extensions.ServiceDiscovery" Version="10.9.0" />
-    <!-- ── Microsoft.Extensions.AI (synced to B:\pmcro-cline, 2026-07-15) ─── -->
-    <PackageVersion Include="Microsoft.Extensions.AI" Version="10.9.0" />
-    <PackageVersion Include="Microsoft.Extensions.AI.Abstractions" Version="10.9.0" />
-    <!-- ── MCP — official .NET Model Context Protocol SDK (NEW for mcp/*) ──── -->
-    <!-- Flagged per .clinerules/04-phase-1-scope.md: required for the 7 MCP
-         server projects; this is the canonical Microsoft MCP SDK, not a new
-         untrusted dependency. -->
-    <!-- NOTE (2026-07-15): reverses the earlier deliberate 1.0.0 pin.
-         B:\pmcro-cline standardized on stable 1.4.1 since 3 of 4 real usages
-         there required it; bumping W: to match so both projects share one SDK
-         version. If W:'s MCP servers specifically need 1.0.0, say so and this
-         pair reverts. -->
-    <!-- CORRECTED (2026-07-21, ARCH-MCP-NATIVE-001 verification): the prior
-         2.0.0-preview.3 pin does not exist on NuGet; only 2.0.0-preview.1 and
-         the stable 1.4.0 line are published (verified against nuget.org/packages/
-         ModelContextProtocol on 2026-07-21). Restore would fail outright (NU1102)
-         on the old pin. Pinning to stable 1.4.0 instead of the 2.0.0 preview:
-         McpToolCache.cs's native-client rewrite (McpClient.CreateAsync +
-         HttpClientTransport) is verified against the 1.4.0 API surface, and 1.4.0
-         avoids the 2.0.0-preview line's in-flight 2026-07-28 protocol/session
-         changes for something this load-bearing. -->
-    <PackageVersion Include="ModelContextProtocol" Version="2.2.0" />
-    <PackageVersion Include="ModelContextProtocol.AspNetCore" Version="2.2.0" />
-    <!-- ── gRPC (synced to B:\pmcro-cline, 2026-07-15) ───────────────────── -->
+
+    <!-- gRPC -->
     <PackageVersion Include="Grpc.AspNetCore" Version="2.83.0" />
     <PackageVersion Include="Grpc.AspNetCore.Server.Reflection" Version="2.83.0" />
     <PackageVersion Include="Grpc.AspNetCore.Server.ClientFactory" Version="2.83.0" />
     <PackageVersion Include="Grpc.Net.Client" Version="2.83.0" />
     <PackageVersion Include="Grpc.Tools" Version="2.83.0" />
     <PackageVersion Include="Google.Protobuf" Version="3.36.0-rc2" />
-    <!-- ── Microsoft Agent Framework (MAF) — 1.0 GA (2026-04-02), validated ── -->
-    <!-- Per user direction + .agents/skills/copilotkit-ms-agent-framework-dotnet
-         (validated 2026-07-13): use MAF native AIAgent types + AIWorkflows.
-         Supersedes older Microsoft.Agents.Core 1.6.x line. -->
-    <PackageVersion Include="Microsoft.Agents.AI" Version="1.18.0" />
-    <PackageVersion Include="Microsoft.Agents.AI.Abstractions" Version="1.18.0" />
-    <PackageVersion Include="Microsoft.Agents.AI.OpenAI" Version="1.18.0" />
-    <PackageVersion Include="Microsoft.Agents.AI.Workflows" Version="1.18.0" />
-    <!-- ARCH-DECLARATIVE-001 (2026-08-06): real Foundry Workflow Object-Model YAML
-         parser (DeclarativeWorkflowBuilder.Build<T>). NOT the same schema as the
-         hand-authored executors/edges/entry_point YAML in workflow.zip; those
-         predate this verification and need rewriting against the actual
-         action-kind vocabulary (InvokeAzureAgent/If/ConditionGroup/GotoAction/
-         RequestExternalInput/etc) before they're loadable. Agent resolution goes
-         through the abstract ResponseAgentProvider contract, not hardcoded to
-         AzureAgentProvider; a local provider bridging to ISubjectAgentRegistry
-         is the intended path, not Foundry cloud. -->
-    <PackageVersion Include="Microsoft.Agents.AI.Workflows.Declarative" Version="1.18.0" />
-    <!-- ── Testing (added 2026-07-20 bootstrap pass) ─────────────────────── -->
+
     <PackageVersion Include="xunit.v3.mtp-v2" Version="3.2.2" />
-    <!-- ── Containerization ───────────────────────────────────────────────── -->
     <PackageVersion Include="Microsoft.VisualStudio.Azure.Containers.Tools.Targets" Version="1.23.0" />
-    <!-- ── OllamaSharp (NuGet, last published 2026-03-24) ────────────────── -->
     <PackageVersion Include="OllamaSharp" Version="5.4.30" />
   </ItemGroup>
 </Project>

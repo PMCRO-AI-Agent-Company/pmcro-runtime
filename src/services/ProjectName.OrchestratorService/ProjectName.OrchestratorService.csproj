@@ -9,19 +9,15 @@
 
 	<ItemGroup>
 		<!-- Own gRPC server surface (PmcroOrchestrator service) -->
-		<!-- Sibling phase-service protos removed: PlannerService, MakerService, -->
-		<!-- CheckerService, ReflectorService deleted. All four phases now run in-process -->
-		<!-- via MAF WorkflowBuilder. No gRPC clients needed. -->
 		<Protobuf Include="Protos\orchestrator.proto" GrpcServices="Both" />
 	</ItemGroup>
 
 	<ItemGroup>
 		<PackageReference Include="Grpc.AspNetCore" />
 		<PackageReference Include="Grpc.AspNetCore.Server.Reflection" />
-		<!-- Grpc.Net.ClientFactory removed: no outbound gRPC clients remain -->
-
 		<PackageReference Include="ModelContextProtocol" />
 
+		<!-- Microsoft Agent Framework: native execution + declarative workflow -->
 		<PackageReference Include="Microsoft.Agents.AI" />
 		<PackageReference Include="Microsoft.Agents.AI.Abstractions" />
 		<PackageReference Include="Microsoft.Agents.AI.Hyperlight" />
@@ -29,6 +25,7 @@
 		<PackageReference Include="Microsoft.Agents.AI.OpenAI" />
 		<PackageReference Include="Microsoft.Agents.AI.Workflows" />
 		<PackageReference Include="Microsoft.Agents.AI.Workflows.Declarative" />
+		<PackageReference Include="Microsoft.Agents.AI.Workflows.Declarative.Mcp" />
 		<PackageReference Include="Microsoft.Agents.AI.Hosting" />
 		<PackageReference Include="Microsoft.Agents.AI.Hosting.OpenAI" />
 		<PackageReference Include="Microsoft.Agents.AI.DevUI" />
@@ -40,7 +37,6 @@
 		<PackageReference Include="Microsoft.Extensions.Http.Resilience" />
 		<PackageReference Include="Microsoft.Extensions.ServiceDiscovery" />
 		<PackageReference Include="OllamaSharp" />
-
 		<PackageReference Include="Microsoft.Extensions.Options" />
 		<PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
 		<PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
@@ -50,9 +46,5 @@
 		<ProjectReference Include="..\..\ProjectName.ServiceDefaults\ProjectName.ServiceDefaults.csproj" />
 	</ItemGroup>
 
-	<!-- ARCH-MAF-NATIVE-002: skills are not embedded into the service binary.
-	     MarketplaceSkillsMaterializer reads .agents/plugins/marketplace.json and
-	     mirrors registered skills into .pmcro/skills-staging before the native
-	     AgentSkillsProvider is resolved. Keeping a second embedded-resource path
-	     would create two competing skill sources and stale production behavior. -->
+	<!-- Skills remain external: MarketplaceSkillsMaterializer owns discovery/materialization. -->
 </Project>
