@@ -44,7 +44,7 @@ export default function LlmHome({ trailsByDomain }: { trailsByDomain: Record<str
   const state = agent.state as CycleState | undefined;
   const [mode, setMode] = useState<OMode>("optimize");
   const [showDetails, setShowDetails] = useState(false);
-  const lastPhase = useRef<Phase | undefined>();
+  const lastPhase = useRef<Phase | undefined>(undefined);
   const router = useRouter();
   const searchParams = useSearchParams();
 
