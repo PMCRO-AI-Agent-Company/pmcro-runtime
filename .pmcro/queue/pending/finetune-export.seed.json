@@ -1,0 +1,15 @@
+{
+  "seedId": "finetune-export-001",
+  "intent": "finetune.export: Export .pmcro/trails to data/pmcro-sft.jsonl (pass-only)",
+  "command": {
+    "name": "finetune.export",
+    "messageType": "PlanRequest",
+    "args": {
+      "trails_dir": ".pmcro/trails",
+      "out": "data/pmcro-sft.jsonl",
+      "pass_only": true
+    }
+  },
+  "priority": "high",
+  "status": "pending"
+}
