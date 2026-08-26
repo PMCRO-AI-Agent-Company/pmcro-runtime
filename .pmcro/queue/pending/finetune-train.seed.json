@@ -1,0 +1,15 @@
+{
+  "seedId": "finetune-train-001",
+  "intent": "finetune.train: Dry-run validate JSONL; write models/pmcro-sft-latest/TRAIN_JOB.json",
+  "command": {
+    "name": "finetune.train",
+    "messageType": "PlanRequest",
+    "args": {
+      "data": "data/pmcro-sft.jsonl",
+      "out_dir": "models/pmcro-sft-latest",
+      "dry_run": true
+    }
+  },
+  "priority": "normal",
+  "status": "pending"
+}
