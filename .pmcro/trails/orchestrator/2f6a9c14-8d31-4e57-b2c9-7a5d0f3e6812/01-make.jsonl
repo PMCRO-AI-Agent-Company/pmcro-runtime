@@ -1,0 +1,3 @@
+{"cycleNumber":14,"action":"manifest_contract","status":"COMPLETED","file":"../pmcro-skills/python/pmcro_finetune/dataset_manifest.schema.json","evidence":"Versioned manifest requires source refs, row count, content SHA-256, quality gates, and train/validation/test counts."}
+{"cycleNumber":14,"action":"manifest_runtime","status":"COMPLETED","file":"python/pmcro_finetune/manifest.py","evidence":"Runtime builds and validates manifest metadata against the exact JSONL artifact bytes."}
+{"cycleNumber":14,"action":"regression_tests","status":"COMPLETED","file":"python/pmcro_finetune/test_manifest.py","evidence":"Clean artifact passes; modified artifact fails SHA-256 validation."}
