@@ -1,0 +1,26 @@
+apiVersion: pmcro.ai/v1
+kind: McpProfiles
+spec:
+  profiles:
+    pmcro:
+      purpose: shared-default
+      gateway: docker-mcp
+      servers:
+        - playwright
+      policy: policies/execution.yaml
+  ownership:
+    catalogAndProfiles: docker-mcp-toolkit
+    profileReferences: pmcro
+    credentials: external-secret-provider
+  notes:
+    - "Verified live against Docker MCP Toolkit on 2026-08-26: exactly one
+       profile exists (`pmcro`), containing one server (`playwright`,
+       image-type). No `github` server and no dev/test/prod environment
+       split are currently provisioned, despite this file previously
+       claiming otherwise."
+    - "If per-environment profiles (dev/test/prod) or a github server are
+       wanted, they need to be created in Docker MCP Toolkit first —
+       this file describes what exists, it does not provision anything."
+    - These are PMCRO profile contracts; the actual Docker MCP profiles are managed by Docker MCP Toolkit.
+    - Keep provider configuration out of agent prompts.
+    - Prefer a curated OCI catalog for reproducible environments.

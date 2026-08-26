@@ -124,6 +124,7 @@
   --colony-muted: oklch(0.708 0 0);
   --colony-accent: #6d8cff;
   --colony-accent-2: #7ee0c0;
+  --colony-accent-3: #b98cff;
 
   /* ARCH-FRONTEND-REDESIGN-001 (2026-07-13): semantic disposition colors,
      mapped 1:1 to ReflectorFrame.Disposition (LoopDisposition enum in
@@ -359,7 +360,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, var(--colony-accent), var(--colony-accent-2));
+  background: linear-gradient(135deg, var(--colony-accent), var(--colony-accent-3));
   color: var(--colony-bg);
 }
 
@@ -401,7 +402,7 @@ body {
 .sidebar-nav {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 4px;
   margin-bottom: 10px;
 }
 
@@ -415,7 +416,7 @@ body {
   color: var(--colony-muted);
   text-decoration: none;
   white-space: nowrap;
-  transition: background 140ms ease, color 140ms ease;
+  transition: background 140ms ease, color 140ms ease, transform 140ms ease;
 }
 
 .sidebar-link svg {
@@ -428,12 +429,17 @@ body {
 .sidebar-link:hover {
   background: var(--colony-panel);
   color: var(--colony-text);
+  transform: translateX(2px);
 }
 
 .sidebar-link[data-active="true"] {
-  background: var(--colony-panel-raised);
+  background: linear-gradient(90deg, color-mix(in srgb, var(--colony-accent) 10%, var(--colony-panel-raised)), var(--colony-panel-raised));
   color: var(--colony-text);
-  box-shadow: inset 2px 0 0 var(--colony-accent);
+  box-shadow: inset 3px 0 0 var(--colony-accent);
+}
+
+.sidebar-link[data-active="true"] svg {
+  opacity: 1;
 }
 
 .sidebar-spacer {
@@ -536,6 +542,12 @@ body {
   border: 1px solid var(--colony-border-bright);
   border-radius: 999px;
   padding: 6px 6px 6px 22px;
+  transition: border-color 140ms ease, box-shadow 140ms ease;
+}
+
+.hero-bar:focus-within {
+  border-color: var(--colony-accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--colony-accent) 20%, transparent);
 }
 
 .hero-input {
@@ -565,11 +577,13 @@ body {
   font-weight: 600;
   font-family: var(--font-body);
   cursor: pointer;
-  transition: opacity 140ms ease;
+  transition: opacity 140ms ease, transform 140ms ease, box-shadow 140ms ease;
 }
 
 .hero-submit:hover {
   opacity: 0.85;
+  transform: translateY(-1px);
+  box-shadow: 0 8px 20px -8px rgba(0,0,0,.4);
 }
 
 .hero-submit:disabled {
@@ -798,7 +812,16 @@ body {
   border-radius: 50%;
   border: 2px solid var(--colony-border-bright);
   background: var(--colony-panel-raised);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--colony-bg);
   transition: border-color 160ms ease, background 160ms ease, box-shadow 160ms ease;
+}
+
+.phase-rail-check {
+  width: 8px;
+  height: 8px;
 }
 
 .phase-rail-step[data-status="done"] .phase-rail-node {
@@ -1821,6 +1844,16 @@ body {
   padding: 18px;
   border-color: var(--colony-border-bright);
   background: linear-gradient(145deg, rgba(39, 39, 42, .98), rgba(24, 24, 27, .98));
+  position: relative;
+}
+.command-card::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 1px;
+  border-radius: 18px 18px 0 0;
+  background: linear-gradient(90deg, transparent, var(--colony-accent-3), transparent);
+  opacity: .5;
 }
 .command-card .hero-bar { background: var(--colony-bg); }
 .command-card-hint { margin: 10px 4px 0; }

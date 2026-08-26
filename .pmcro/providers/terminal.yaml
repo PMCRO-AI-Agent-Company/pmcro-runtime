@@ -1,0 +1,14 @@
+apiVersion: pmcro.ai/v1
+kind: Provider
+metadata:
+  id: terminal
+spec:
+  authority: runtime-host
+  protocol: native-tool
+  capability: host-command-execution
+  lifecycle: runtime-managed
+  risk: critical
+  enabledByDefault: false
+  approval: required
+  notes:
+    - Terminal exists as an explicit capability, not a general-purpose fallback for every provider.

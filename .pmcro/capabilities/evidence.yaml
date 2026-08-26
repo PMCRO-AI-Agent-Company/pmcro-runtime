@@ -1,0 +1,11 @@
+apiVersion: pmcro.ai/v1
+kind: Capability
+metadata:
+  id: evidence
+spec:
+  provider: pmcro-runtime
+  protocol: runtime
+  risk: internal
+  operations: [collect, validate, attach, redact]
+  approval: policy
+  retention: governed

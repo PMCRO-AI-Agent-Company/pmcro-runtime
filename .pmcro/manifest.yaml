@@ -1,0 +1,44 @@
+apiVersion: pmcro.ai/v1
+kind: ColonyRuntime
+metadata:
+  name: pmcro
+  version: 2026.08
+spec:
+  architecture: PMCR-O
+  execution:
+    substrate: microsoft-agent-framework
+    workflowMode: declarative-first
+  protocol:
+    mcp: "2026-07-28"
+  roles:
+    - orchestrator
+    - planner
+    - maker
+    - checker
+    - reflector
+  lifecycle:
+    states: [INTENT, FRAME, TRAIL, EXECUTE, CHECK, REFLECT, EVIDENCE, SEAL, RETRY, ESCALATE, HALT]
+  state:
+    sharedMemory: memory/
+    agentMemory: agent-memory/<role>/
+    checkpoints: state/checkpoints/
+    cycles: state/cycles/
+  governance:
+    laws: laws/
+    policies: policies/
+    evidence: evidence/
+    evaluation: evaluation/
+  capabilities:
+    registry: capabilities/registry.yaml
+  providers:
+    registry: providers/registry.yaml
+  configuration:
+    parameters: config/parameters.yaml
+    environments: config/environments.yaml
+    profiles: config/profiles.yaml
+    secrets: secrets/README.md
+  mcp:
+    registry: mcp/registry.yaml
+  runtime:
+    orchestrator: runtime/orchestrator/ORCHESTRATOR.md
+    config: runtime/config.yaml

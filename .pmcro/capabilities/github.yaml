@@ -1,0 +1,14 @@
+apiVersion: pmcro.ai/v1
+kind: Capability
+metadata:
+  id: github
+spec:
+  provider: github
+  protocol: mcp
+  risk: mutation
+  operations: [search, read, issue, pull-request, commit]
+  approval:
+    read: none
+    write: policy
+    destructive: required
+  evidence: required-for-mutating-actions

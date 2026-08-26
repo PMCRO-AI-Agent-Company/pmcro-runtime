@@ -1,0 +1,16 @@
+apiVersion: pmcro.ai/v1
+kind: Capability
+metadata:
+  id: host-command-execution
+spec:
+  provider: terminal
+  protocol: native-tool
+  risk: critical
+  operations: [execute]
+  approval:
+    execute: required
+  default: deny
+  evidence: required
+  notes:
+    - Terminal is not a generic substitute for Docker MCP Toolkit.
+    - Use terminal only when a workflow explicitly needs host commands unavailable through governed providers.

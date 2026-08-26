@@ -1,0 +1,17 @@
+apiVersion: pmcro.ai/v1
+kind: Provider
+metadata:
+  id: playwright
+spec:
+  authority: microsoft
+  protocol: mcp
+  capability: browser
+  authentication:
+    source: runtime-policy
+  lifecycle: provider-managed
+  versionPolicy: current-authoritative
+  deployment:
+    preferred: docker
+  notes:
+    - Microsoft Playwright MCP is the browser provider.
+    - PMCRO browser capability adds routing, policy, and evidence semantics; it does not reimplement Playwright.

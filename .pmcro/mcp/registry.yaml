@@ -1,0 +1,43 @@
+apiVersion: pmcro.ai/v1
+kind: McpRegistry
+spec:
+  protocol: "2026-07-28"
+  principle: capabilities-not-orchestration
+  providers:
+    - id: github
+      kind: external-mcp
+      authority: github
+      capability: github
+      ownership: external
+      selection: official-provider-preferred
+    - id: playwright
+      kind: external-mcp
+      authority: microsoft
+      capability: browser
+      ownership: external
+      selection: official-provider-preferred
+    - id: docker-mcp-toolkit
+      kind: gateway
+      authority: docker
+      capabilities: [mcp-gateway, containers]
+      ownership: external
+      selection: preferred-for-containerized-mcp
+    - id: terminal
+      kind: native-tool
+      authority: runtime-host
+      capability: host-command-execution
+      ownership: runtime
+      selection: explicit-only
+  routing:
+    github: github
+    browser: playwright
+    mcp-gateway: docker-mcp-toolkit
+    containers: docker-mcp-toolkit
+    host-command-execution: terminal
+  rules:
+    - Prefer authoritative providers over PMCRO provider reimplementations.
+    - Docker MCP Toolkit manages catalog, profile, server lifecycle, gateway, and provider credential flows.
+    - Terminal is not required to create or switch Docker MCP profiles when Docker MCP Toolkit is available.
+    - Terminal remains a separate high-risk capability for arbitrary host commands.
+    - Build a PMCRO adapter only when it adds PMCRO-owned policy, evidence, lifecycle, audit, or domain semantics.
+    - Provider credentials remain external to this registry.

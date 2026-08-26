@@ -1,0 +1,18 @@
+apiVersion: pmcro.ai/v1
+kind: Capability
+metadata:
+  id: containers
+spec:
+  provider: docker-mcp-toolkit
+  protocol: mcp
+  risk: infrastructure
+  operations: [inspect, start, stop, logs, health-check, collect-artifacts]
+  approval:
+    inspect: none
+    start: policy
+    stop: required
+    destroy: required
+  evidence: required
+  notes:
+    - Docker MCP Toolkit remains the container/MCP provider.
+    - PMCRO does not reimplement Docker Engine or Docker MCP Gateway.

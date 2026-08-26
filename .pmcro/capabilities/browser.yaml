@@ -1,0 +1,14 @@
+apiVersion: pmcro.ai/v1
+kind: Capability
+metadata:
+  id: browser
+spec:
+  provider: playwright
+  protocol: mcp
+  risk: external-side-effect
+  operations: [navigate, inspect, interact, assert, capture-evidence]
+  approval:
+    navigation: policy
+    interaction: policy
+    destructive: required
+  evidence: required-for-validation

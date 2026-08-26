@@ -1,0 +1,17 @@
+apiVersion: pmcro.ai/v1
+kind: Capability
+metadata:
+  id: filesystem
+spec:
+  provider: maf-native
+  protocol: native-tool
+  risk: workspace-mutation
+  operations: [read, write, list]
+  approval:
+    read: none
+    write: policy
+    outside-workspace: required
+  evidence: required-for-write
+  notes:
+    - Filesystem access is limited by the runtime workspace boundary.
+    - Filesystem access must not be used to discover or export secret material.

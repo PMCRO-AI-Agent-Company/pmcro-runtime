@@ -1,0 +1,16 @@
+apiVersion: pmcro.ai/v1
+kind: Provider
+metadata:
+  id: github
+spec:
+  authority: github
+  protocol: mcp
+  capability: github
+  authentication:
+    source: external
+    reference: github-token
+  lifecycle: provider-managed
+  versionPolicy: current-authoritative
+  notes:
+    - Use GitHub's authoritative MCP implementation where available.
+    - Do not create a PMCRO GitHub wrapper unless PMCRO-owned governance/evidence is required.

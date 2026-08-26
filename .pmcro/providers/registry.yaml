@@ -1,0 +1,41 @@
+apiVersion: pmcro.ai/v1
+kind: ProviderRegistry
+spec:
+  providers:
+    github:
+      authority: github
+      kind: external-mcp
+      capability: github
+      selection: official-provider-preferred
+    playwright:
+      authority: microsoft
+      kind: external-mcp
+      capability: browser
+      selection: official-provider-preferred
+    docker-mcp-toolkit:
+      authority: docker
+      kind: gateway
+      capabilities: [mcp-gateway, containers]
+      selection: preferred-for-containerized-mcp
+    terminal:
+      authority: runtime-host
+      kind: native-tool
+      capability: host-command-execution
+      selection: explicit-only
+    maf-native:
+      authority: microsoft-agent-framework
+      kind: native-tooling
+      capabilities: [filesystem]
+      selection: native-preferred
+    pmcro-runtime:
+      authority: pmcro
+      kind: runtime
+      capabilities: [memory, evidence, evaluation]
+      selection: pmcro-owned
+  rules:
+    - Existing authoritative providers remain the implementation boundary.
+    - PMCRO owns capability policy, routing, evidence, lifecycle, and governance.
+    - Docker MCP Toolkit manages MCP catalogs, profiles, server lifecycle, and gateway routing.
+    - Terminal is not required merely to create Docker MCP profiles or catalogs.
+    - Terminal is reserved for explicit host-command execution and is always governed.
+    - Credentials are supplied by the runtime configuration/secret provider, not provider registry files.

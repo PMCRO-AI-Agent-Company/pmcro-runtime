@@ -1,0 +1,22 @@
+apiVersion: pmcro.ai/v1
+kind: Provider
+metadata:
+  id: docker-mcp-toolkit
+spec:
+  authority: docker
+  protocol: mcp
+  capabilities: [mcp-gateway, containers]
+  lifecycle: provider-managed
+  configuration:
+    profileParameter: docker-mcp-profile
+    catalogParameter: docker-mcp-catalog
+  operations:
+    - catalog
+    - profile
+    - server
+    - gateway
+    - secret-reference
+  notes:
+    - Docker MCP Toolkit owns catalog/profile/server lifecycle.
+    - Prefer curated catalogs and versioned profiles for reproducibility.
+    - Do not expose Docker Engine commands as the default agent interface.

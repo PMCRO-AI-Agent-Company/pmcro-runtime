@@ -1,0 +1,19 @@
+apiVersion: pmcro.ai/v1
+kind: Capability
+metadata:
+  id: mcp-gateway
+spec:
+  provider: docker-mcp-toolkit
+  protocol: mcp
+  risk: infrastructure
+  operations: [catalog-read, profile-read, profile-switch, server-list]
+  approval:
+    catalog-read: none
+    profile-read: none
+    profile-switch: policy
+    profile-mutate: required
+    catalog-publish: required
+  evidence: required-for-mutations
+  notes:
+    - Docker MCP Toolkit owns catalog/profile state.
+    - PMCRO stores the desired profile contract and governance only.

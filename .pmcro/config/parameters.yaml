@@ -1,0 +1,41 @@
+apiVersion: pmcro.ai/v1
+kind: RuntimeParameters
+spec:
+  parameters:
+    - name: github-token
+      secret: true
+      required: false
+      description: GitHub authentication material supplied by the hosting environment or official GitHub MCP authentication.
+    - name: github-mcp-url
+      secret: false
+      required: false
+      description: Optional remote GitHub MCP endpoint.
+    - name: playwright-mcp-url
+      secret: false
+      required: false
+      description: Optional long-lived Playwright MCP endpoint.
+    - name: docker-mcp-profile
+      secret: false
+      required: true
+      default: pmcro
+      description: Docker MCP Toolkit profile used by the runtime.
+    - name: docker-mcp-catalog
+      secret: false
+      required: false
+      description: Curated OCI catalog reference for approved MCP servers.
+    - name: pmcro-environment
+      secret: false
+      required: true
+      default: Development
+      description: Runtime environment name.
+    - name: azure-key-vault-uri
+      secret: false
+      required: false
+      description: Production Azure Key Vault URI; a reference only, never a credential.
+  rules:
+    - Secret values must never be committed to .pmcro.
+    - Aspire AppHost parameters are the preferred application configuration seam.
+    - Production secrets should resolve from the platform secret provider, such as Azure Key Vault with managed identity.
+    - CI should inject secret parameters through its native secret store.
+    - Aspire environment-variable overrides use Parameters__{parameter_name}, with dashes represented by underscores.
+    - Provider-specific OAuth may be managed by the provider or Docker MCP Toolkit rather than copied into PMCRO configuration.

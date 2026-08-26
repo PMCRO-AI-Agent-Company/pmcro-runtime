@@ -1,0 +1,82 @@
+kind: Workflow
+id: pmcro_cycle
+version: 2026.08
+trigger:
+  kind: OnConversationStart
+actions:
+  - kind: SetVariable
+    id: initialize_cycle
+    variable: Local.cycleState
+    value: FRAME
+
+  - kind: InvokeAgent
+    id: orchestrate
+    agent: orchestrator
+
+  - kind: SetVariable
+    id: enter_execute
+    variable: Local.cycleState
+    value: EXECUTE
+
+  - kind: InvokeAgent
+    id: plan
+    agent: planner
+
+  - kind: InvokeAgent
+    id: make
+    agent: maker
+
+  - kind: InvokeAgent
+    id: check
+    agent: checker
+
+  - kind: ConditionGroup
+    id: checker_gate
+    conditions:
+      - condition: =Workflow.State.checker.result == 'pass'
+        actions:
+          - kind: SetVariable
+            id: enter_reflect
+            variable: Local.cycleState
+            value: REFLECT
+          - kind: InvokeAgent
+            id: reflect
+            agent: reflector
+          - kind: SetVariable
+            id: enter_evidence
+            variable: Local.cycleState
+            value: EVIDENCE
+          - kind: InvokeCapability
+            id: collect_evidence
+            capability: evidence
+            operation: collect
+          - kind: InvokeCapability
+            id: seal_cycle
+            capability: lifecycle
+            operation: seal
+          - kind: SetVariable
+            id: enter_seal
+            variable: Local.cycleState
+            value: SEAL
+          - kind: EndWorkflow
+            id: complete
+      - condition: =Workflow.State.checker.result == 'fail'
+        actions:
+          - kind: SetVariable
+            id: enter_retry
+            variable: Local.cycleState
+            value: RETRY
+          - kind: GotoAction
+            id: retry
+            target: plan
+policy:
+  maxIterations: 3
+  requireEvidence: true
+  requireCheckerPass: true
+  requireReflectionOnCompletion: true
+  requireApprovalForMutation: true
+
+notes:
+  - This workflow expresses PMCR-O governance over MAF execution; it does not replace MAF workflow runtime semantics.
+  - External provider actions resolve through .pmcro/capabilities and .pmcro/providers.
+  - Docker MCP profiles and catalogs are provider infrastructure, not workflow state.

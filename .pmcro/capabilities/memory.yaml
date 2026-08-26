@@ -1,0 +1,18 @@
+apiVersion: pmcro.ai/v1
+kind: Capability
+metadata:
+  id: memory
+spec:
+  provider: pmcro-runtime
+  protocol: runtime
+  risk: governed-state
+  operations: [read, retain, redact, expire]
+  approval:
+    read: policy
+    retain: policy
+    redact: policy
+    expire: policy
+  evidence: required-for-retention-change
+  notes:
+    - Shared memory and agent memory remain distinct.
+    - Secrets, raw credentials, and unredacted provider tokens are never retained.

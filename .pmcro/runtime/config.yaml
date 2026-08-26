@@ -1,0 +1,34 @@
+apiVersion: pmcro.ai/v1
+kind: RuntimeConfig
+spec:
+  workflow:
+    mode: declarative-first
+    maxIterations: 3
+    checkpointing: enabled
+    substrate: microsoft-agent-framework
+  governance:
+    evidenceRequired: true
+    checkerGateRequired: true
+    reflectionRequiredOnCompletion: true
+    policy: policies/execution.yaml
+    securityPolicy: policies/security.yaml
+  memory:
+    shared: memory/
+    agent: agent-memory/<role>/
+    executionState: state/
+  capabilities:
+    registry: capabilities/registry.yaml
+    providers: providers/registry.yaml
+    mcp: mcp/registry.yaml
+  configuration:
+    parameters: config/parameters.yaml
+    environments: config/environments.yaml
+    profiles: config/profiles.yaml
+    secrets: secrets/README.md
+  observability:
+    traces: evidence/observability/traces/
+    metrics: evidence/observability/metrics/
+    events: evidence/observability/events/
+  terminal:
+    enabled: false
+    approval: required

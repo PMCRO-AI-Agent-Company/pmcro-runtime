@@ -1,0 +1,18 @@
+apiVersion: pmcro.ai/v1
+kind: CapabilityRegistry
+spec:
+  capabilities:
+    browser: capabilities/browser.yaml
+    containers: capabilities/containers.yaml
+    evidence: capabilities/evidence.yaml
+    filesystem: capabilities/filesystem.yaml
+    github: capabilities/github.yaml
+    host-command-execution: capabilities/host-command-execution.yaml
+    lifecycle: capabilities/lifecycle.yaml
+    mcp-gateway: capabilities/mcp-gateway.yaml
+    memory: capabilities/memory.yaml
+  rules:
+    - Capability identifiers are stable PMCRO contracts, not provider tool names.
+    - Provider selection resolves through providers/registry.yaml and mcp/registry.yaml.
+    - Unknown capabilities are denied by policies/execution.yaml.
+    - A capability may be requested only when its policy and validation requirements are satisfied.

@@ -1,0 +1,48 @@
+apiVersion: pmcro.ai/v1
+kind: ExecutionPolicy
+spec:
+  policyReferences:
+    permissions: policies/permissions.yaml
+    network: policies/network.yaml
+  defaults:
+    denyUnknownCapabilities: true
+    requireEvidenceForCompletion: true
+    requireCheckerPass: true
+    requireApprovalForMutation: true
+    redactSecretsFromEvidence: true
+  capabilities:
+    github:
+      read: allow
+      write: approval
+      destructive: deny-by-default
+    browser:
+      read: allow
+      interaction: policy
+      destructive: approval
+    containers:
+      inspect: allow
+      start: policy
+      stop: approval
+      destroy: approval
+    mcp-gateway:
+      inspect: allow
+      profile-read: allow
+      profile-mutate: approval
+      catalog-read: allow
+      catalog-publish: approval
+    host-command-execution:
+      default: deny
+      explicitApproval: required
+      allowedProfiles: []
+    filesystem:
+      workspaceRead: allow
+      workspaceWrite: policy
+      outsideWorkspace: deny
+  evidence:
+    minimum:
+      - capability
+      - provider
+      - action
+      - outcome
+      - timestamp
+      - artifact-or-reference

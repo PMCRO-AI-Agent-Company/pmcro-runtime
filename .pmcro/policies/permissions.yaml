@@ -1,0 +1,33 @@
+apiVersion: pmcro.ai/v1
+kind: PermissionPolicy
+spec:
+  roles:
+    orchestrator:
+      may: [route, select-strategy, open-cycle, request-capability]
+      mayNot: [execute-provider-action, verify-outcome, mutate-governed-artifact]
+    planner:
+      may: [propose-plan, define-success-criteria, select-validated-resource]
+      mayNot: [execute-provider-action, issue-disposition]
+    maker:
+      may: [execute-approved-action, emit-execution-evidence]
+      mayNot: [approve-own-action, verify-outcome, seal-cycle]
+    checker:
+      may: [validate-evidence, report-coverage]
+      mayNot: [execute-provider-action, mutate-target]
+    reflector:
+      may: [record-disposition, propose-earned-constraint, propose-next-seed]
+      mayNot: [rewrite-laws, execute-provider-action]
+  capabilityRules:
+    host-command-execution:
+      requireExplicitApproval: true
+      requireValidatedNeed: true
+    containers:
+      profileMutationRequiresApproval: true
+    browser:
+      destructiveInteractionRequiresApproval: true
+    github:
+      writeRequiresApproval: true
+  rules:
+    - No role may approve its own mutation.
+    - Capability permission is necessary but not sufficient; execution policy and evidence requirements also apply.
+    - Missing provider capability produces an escalated governed result, never an invented integration.

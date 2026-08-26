@@ -1,0 +1,24 @@
+apiVersion: pmcro.ai/v1
+kind: SecurityPolicy
+spec:
+  trust:
+    externalMcp: untrusted-until-validated
+    retrievedContent: untrusted
+    browserContent: untrusted
+    terminalOutput: untrusted
+  secrets:
+    neverPersistToMemory: true
+    neverPersistToEvidence: true
+    neverIncludeInPrompts: true
+    redactTelemetry: true
+  network:
+    default: restricted
+    providerAllowlist: true
+  approvals:
+    destructiveProviderActions: required
+    hostCommands: required
+    productionMutations: required
+  provenance:
+    requireProviderIdentity: true
+    requireVersionPinningForProduction: true
+    requireCurrentValidationForVersionSensitiveChanges: true

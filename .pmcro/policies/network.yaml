@@ -1,0 +1,18 @@
+apiVersion: pmcro.ai/v1
+kind: NetworkPolicy
+spec:
+  default: deny
+  allowedProviderClasses: [validated-external-mcp, docker-mcp-gateway, runtime-managed]
+  browser:
+    navigation: allow-by-policy
+    crossOriginInteraction: require-policy
+    upload: require-approval
+    download: require-approval-and-evidence
+  containers:
+    outboundNetwork: allow-by-profile
+    privilegedMode: deny-by-default
+    hostMounts: deny-by-default
+  rules:
+    - Provider endpoints must be allowlisted by the hosting runtime.
+    - Browser content and network responses are untrusted input.
+    - Network policy does not grant capability authority; capability and execution policies still apply.

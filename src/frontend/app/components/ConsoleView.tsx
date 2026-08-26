@@ -202,7 +202,13 @@ function PhaseRail() {
           return (
             <Fragment key={step.key}>
               <div className="phase-rail-step" data-status={status}>
-                <div className="phase-rail-node" />
+                <div className="phase-rail-node">
+                  {status === "done" && (
+                    <svg viewBox="0 0 12 12" className="phase-rail-check" aria-hidden="true">
+                      <path d="M2.5 6.2l2.2 2.2 4.8-5" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  )}
+                </div>
                 <span className="phase-rail-label">{step.label}</span>
               </div>
               {i < RAIL_STEPS.length - 1 && (

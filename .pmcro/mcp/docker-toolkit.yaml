@@ -1,0 +1,28 @@
+apiVersion: pmcro.ai/v1
+kind: DockerMcpContract
+spec:
+  owner: docker-mcp-toolkit
+  catalog:
+    mode: curated
+    reference: ${Parameters__docker-mcp-catalog}
+    productionRequired: true
+  profiles:
+    development: pmcro-dev
+    test: pmcro-test
+    production: pmcro-prod
+  gateway:
+    command: docker mcp gateway run
+    profileParameter: ${Parameters__docker-mcp-profile}
+  governance:
+    allowedServers:
+      - github
+      - playwright
+    requireProviderValidation: true
+    requireVersionPinningForProduction: true
+    requireApprovalForProfileMutation: true
+  terminal:
+    requiredForProfileManagement: false
+    fallback: false
+  notes:
+    - Docker MCP Toolkit is the source of truth for profile/catalog state.
+    - This file expresses PMCRO's desired contract and guardrails only.

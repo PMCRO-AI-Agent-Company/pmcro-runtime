@@ -1,8 +1,0 @@
-{
-  "trail_id": "60d7eb91-abb5-4ae3-93ee-a785d61dac11",
-  "domain": "pmcro-runtime",
-  "true_intent": "Install a real xUnit v3/MTP test project for ProjectName.OrchestratorService and write real passing tests for TerminalCommandPolicy.Classify, closing part of the 0-test gap flagged in .pmcro/agent-memory/2026-08-22-cross-repo-audit.md.",
-  "o_mode": "governed",
-  "executed_by": "Claude (chat) + Desktop Commander MCP, real process execution against the live repo, not simulated",
-  "note": "Every command in 01-make.jsonl was actually run against Z:\\pmcro-runtime. dotnet test output quoted is real, not self-reported."
-}

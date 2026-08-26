@@ -1,0 +1,30 @@
+apiVersion: pmcro.ai/v1
+kind: EnvironmentMap
+spec:
+  Development:
+    dockerMcpProfile: pmcro
+    dockerMcpCatalog: default
+    secretSource: dotnet-user-secrets-or-docker-mcp-secret
+    approvals: interactive
+    terminal: disabled-by-default
+  Test:
+    dockerMcpProfile: pmcro
+    dockerMcpCatalog: default
+    secretSource: ci-secret-store
+    approvals: policy
+    terminal: disabled-by-default
+  Production:
+    dockerMcpProfile: pmcro
+    dockerMcpCatalog: default
+    secretSource: platform-secret-provider
+    approvals: mandatory-for-mutation
+    terminal: disabled-by-default
+  rules:
+    - Environment names are configuration labels, not secret stores.
+    - Profiles and catalogs may be shared as OCI artifacts but must be versioned and reviewed.
+    - Production must not silently fall back to developer credentials or local profiles.
+    - "Verified live 2026-08-26: only one Docker MCP profile (`pmcro`) and
+       the default catalog exist. Dev/Test/Prod currently share the same
+       underlying profile/catalog — there is no real isolation between
+       them yet. `pmcro-approved` is an aspirational catalog name, not a
+       provisioned one."

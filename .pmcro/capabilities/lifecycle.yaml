@@ -1,0 +1,14 @@
+apiVersion: pmcro.ai/v1
+kind: Capability
+metadata:
+  id: lifecycle
+spec:
+  provider: pmcro-runtime
+  protocol: runtime
+  risk: internal
+  operations: [seal, retry, escalate, halt]
+  approval:
+    seal: policy
+    retry: policy
+    escalate: policy
+    halt: policy
